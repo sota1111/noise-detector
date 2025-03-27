@@ -1,6 +1,7 @@
 ﻿# 使い方
 ## training
 trainingディレクトリで実行する
+
 学習
 ``` bash 
 python3 classification.py -c cudnn -n conv1d -o output --batch-size 32 --learning-rate 0.001 --max-iter 300 --val-interval 10 --val-iter 20
