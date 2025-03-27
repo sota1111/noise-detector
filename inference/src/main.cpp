@@ -83,7 +83,6 @@ void loop() {
         for(index = 0; index < csvSize; index++){
           nn_input_buffer[index] = ((float)atof(token)-(float)2048.0)/(float)2048.0;
           token = strtok(NULL, ",");
-          index++;
           if(token == NULL){
             break;
           }
