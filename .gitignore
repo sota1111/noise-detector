@@ -4,3 +4,4 @@ training/tmp.monitor/*
 training/output/*
 training/log/*
 .vscode/*
+tmp.monitor/*

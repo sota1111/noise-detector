@@ -1,4 +1,6 @@
 import re
+import shutil
+import os
 
 def comment_out_specific_lines(file_path):
     """
@@ -46,8 +48,29 @@ def add_const_to_validation_parameters(file_path):
 
     print(f"'{file_path}' を上書きしました。")
 
+def move_files_to_validation():
+    """
+    output_csrc にある4つのファイルを 1つ上の階層の inference/src/Validation に上書きで移動する
+    """
+    src_dir = "output_csrc"
+    dst_dir = os.path.join("..", "inference", "src", "Validation")
+    filenames = [
+        "Validation_inference.c",
+        "Validation_inference.h",
+        "Validation_parameters.c",
+        "Validation_parameters.h"
+    ]
+
+    for filename in filenames:
+        src_path = os.path.join(src_dir, filename)
+        dst_path = os.path.join(dst_dir, filename)
+        shutil.copy2(src_path, dst_path)  # 上書きでコピー
+        print(f"{filename} を {dst_dir} に移動しました（上書き）。")
+
 if __name__ == '__main__':
     file_path = "output_csrc/Validation_inference.c"
     comment_out_specific_lines(file_path)
     file_path = "output_csrc/Validation_parameters.c"
     add_const_to_validation_parameters(file_path)
+
+    move_files_to_validation()
