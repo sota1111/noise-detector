@@ -3,3 +3,4 @@ training/utils/neu/__pycache__/*
 training/tmp.monitor/*
 training/output/*
 training/log/*
+.vscode/*
