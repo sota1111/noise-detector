@@ -319,6 +319,60 @@ def train():
     save.save(os.path.join(args.model_save_path, '{}_result.nnp'.format(args.net)), contents)    
     plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
     plot_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
+    
+    # 個別のサンプルに対する確率を表示
+    validate_specific_samples(parameter_file)
+
+def validate_specific_samples(model_path, num_samples=10):
+    """
+    label0とlabel1のデータそれぞれnum_samples個に対してvalidationを行い、
+    各データに対する確率を表示する関数
+    
+    Args:
+        model_path (str): 学習済みモデルのパス
+        num_samples (int): 各ラベルから検証するサンプル数
+    """
+    # モデルのロード
+    audio = nn.Variable([1, 1, input_size, 1])
+    pred = audio_conv1d_prediction(audio, test=True)
+    nn.load_parameters(model_path)
+    
+    # データの準備
+    label0_files = glob.glob(os.path.join("dataset", "label0", "*.csv"))[:num_samples]
+    label1_files = glob.glob(os.path.join("dataset", "label1", "*.csv"))[:num_samples]
+    
+    print("\n=== Label 0 のサンプルの検証 ===")
+    for file_path in label0_files:
+        data = load_audio_csv(file_path)
+        if data is not None:
+            audio.d = data.reshape(1, 1, input_size, 1)
+            pred.forward(clear_buffer=True)
+            pred_reshaped = F.reshape(pred, (-1, 2))
+            pred_reshaped.forward(clear_buffer=True)
+            softmax_out = F.softmax(pred_reshaped)
+            softmax_out.forward(clear_buffer=True)
+            probabilities = softmax_out.d[0]
+            print(f"\nFile: {os.path.basename(file_path)}")
+            print(f"Label 0の確率: {probabilities[0]:.4f}")
+            print(f"Label 1の確率: {probabilities[1]:.4f}")
+            print(f"予測: Label {np.argmax(probabilities)}")
+    
+    print("\n=== Label 1 のサンプルの検証 ===")
+    for file_path in label1_files:
+        data = load_audio_csv(file_path)
+        if data is not None:
+            audio.d = data.reshape(1, 1, input_size, 1)
+            pred.forward(clear_buffer=True)
+            pred_reshaped = F.reshape(pred, (-1, 2))
+            pred_reshaped.forward(clear_buffer=True)
+            softmax_out = F.softmax(pred_reshaped)
+            softmax_out.forward(clear_buffer=True)
+            probabilities = softmax_out.d[0]
+            print(f"\nFile: {os.path.basename(file_path)}")
+            print(f"Label 0の確率: {probabilities[0]:.4f}")
+            print(f"Label 1の確率: {probabilities[1]:.4f}")
+            print(f"予測: Label {np.argmax(probabilities)}")
+
 
 def plot_confusion_matrix(vaudio, vlabel, vpred, batch_size, val_iter, log_filename):
     """
