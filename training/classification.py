@@ -18,6 +18,7 @@ from _checkpoint_nnp_util import save_checkpoint, load_checkpoint, save_nnp  # �
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 input_size = 800
 
@@ -317,6 +318,58 @@ def train():
     contents = save_nnp({'x': vaudio}, {'y': vpred}, args.batch_size)
     save.save(os.path.join(args.model_save_path, '{}_result.nnp'.format(args.net)), contents)    
     plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
+    plot_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
+
+def plot_confusion_matrix(vaudio, vlabel, vpred, batch_size, val_iter, log_filename):
+    """
+    検証データを使用して混合行列を計算し表示する関数
+    
+    Args:
+        vaudio: 検証用の入力データ変数
+        vlabel: 検証用のラベル変数
+        vpred: 検証用の予測変数
+        batch_size: バッチサイズ
+        val_iter: 検証イテレーション数
+        log_filename: ログを出力するファイルパス
+    """
+    print("\n最終的な検証データでの混合行列を計算中...")
+    y_true = []
+    y_pred = []
+    
+    # 検証データで予測を収集
+    val_data = iter(data_iterator_audio(batch_size, False))
+    for j in range(val_iter):
+        vaudio.d, vlabel.d = next(val_data)
+        vpred.forward(clear_buffer=True)
+        pred_labels = vpred.d.argmax(axis=1)
+        y_true.extend(vlabel.d.flatten())
+        y_pred.extend(pred_labels)
+    
+    # 混合行列の計算と表示
+    cm = confusion_matrix(y_true, y_pred)
+    plt.close('all')  # すべての図をクリア
+    fig = plt.figure(figsize=(8, 6))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Label 0', 'Label 1'])
+    disp.plot(cmap='Blues', values_format='d', ax=plt.gca())
+    plt.title('Validation Confusion Matrix')
+    plt.tight_layout()
+    plt.draw()
+    plt.pause(0.1)  # 描画が完了するのを待つ
+    plt.show(block=True)
+    plt.close(fig)
+    
+    # 混合行列の詳細な結果をログに出力
+    with open(log_filename, 'a') as log_file:
+        log_file.write("\n混合行列:\n")
+        log_file.write(str(cm))
+        log_file.write("\n")
+        
+        # クラスごとの精度の計算
+        for i in range(len(cm)):
+            true_positive = cm[i][i]
+            total = sum(cm[i])
+            accuracy = true_positive / total if total > 0 else 0
+            log_file.write(f"\nLabel {i} の精度: {accuracy:.4f}")
 
 if __name__ == '__main__':
     train()
