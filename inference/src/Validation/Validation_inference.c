@@ -24,7 +24,7 @@
 typedef struct {
     void *buffer_pool[2];
     void *param_pool[10];
-    rt_buffer_allocate_type_t variable_buffers_allocate_type[23];
+    rt_buffer_allocate_type_t variable_buffers_allocate_type[22];
 
     // Variables
     rt_variable_t v0; ///< x
@@ -45,34 +45,32 @@ typedef struct {
     int v7_shape[4];
     rt_variable_t v8; ///< @Validation/ReLU_out_2
     int v8_shape[4];
-    rt_variable_t v9; ///< @Validation/GlobalAveragePooling_out
-    int v9_shape[4];
-    rt_variable_t v10; ///< @Validation/Affine_out
+    rt_variable_t v9; ///< @Validation/Affine_out
+    int v9_shape[2];
+    rt_variable_t v10; ///< @Validation/ReLU_out_3
     int v10_shape[2];
-    rt_variable_t v11; ///< @Validation/ReLU_out_3
+    rt_variable_t v11; ///< y
     int v11_shape[2];
-    rt_variable_t v12; ///< y
-    int v12_shape[2];
-    rt_variable_t v13; ///< conv1d_1/conv/W
-    int v13_shape[4];
-    rt_variable_t v14; ///< conv1d_1/conv/b
-    int v14_shape[1];
-    rt_variable_t v15; ///< conv1d_2/conv/W
-    int v15_shape[4];
-    rt_variable_t v16; ///< conv1d_2/conv/b
-    int v16_shape[1];
-    rt_variable_t v17; ///< conv1d_3/conv/W
-    int v17_shape[4];
-    rt_variable_t v18; ///< conv1d_3/conv/b
-    int v18_shape[1];
-    rt_variable_t v19; ///< fc1/affine/W
-    int v19_shape[2];
-    rt_variable_t v20; ///< fc1/affine/b
-    int v20_shape[1];
-    rt_variable_t v21; ///< fc2/affine/W
-    int v21_shape[2];
-    rt_variable_t v22; ///< fc2/affine/b
-    int v22_shape[1];
+    rt_variable_t v12; ///< conv1d_1/conv/W
+    int v12_shape[4];
+    rt_variable_t v13; ///< conv1d_1/conv/b
+    int v13_shape[1];
+    rt_variable_t v14; ///< conv1d_2/conv/W
+    int v14_shape[4];
+    rt_variable_t v15; ///< conv1d_2/conv/b
+    int v15_shape[1];
+    rt_variable_t v16; ///< conv1d_3/conv/W
+    int v16_shape[4];
+    rt_variable_t v17; ///< conv1d_3/conv/b
+    int v17_shape[1];
+    rt_variable_t v18; ///< fc1/affine/W
+    int v18_shape[2];
+    rt_variable_t v19; ///< fc1/affine/b
+    int v19_shape[1];
+    rt_variable_t v20; ///< fc2/affine/W
+    int v20_shape[2];
+    rt_variable_t v21; ///< fc2/affine/b
+    int v21_shape[1];
 
     // Functions
     rt_function_t f0; ///< Convolution
@@ -122,21 +120,18 @@ typedef struct {
     rt_variable_t* f7_inputs[1];
     rt_variable_t* f7_outputs[1];
     relu_local_context_t *f7_local_context;
-    rt_function_t f8; ///< GlobalAveragePooling
-    rt_variable_t* f8_inputs[1];
+    rt_function_t f8; ///< Affine
+    rt_variable_t* f8_inputs[3];
     rt_variable_t* f8_outputs[1];
-    rt_function_t f9; ///< Affine
-    rt_variable_t* f9_inputs[3];
+    affine_local_context_t *f8_local_context;
+    rt_function_t f9; ///< ReLU
+    rt_variable_t* f9_inputs[1];
     rt_variable_t* f9_outputs[1];
-    affine_local_context_t *f9_local_context;
-    rt_function_t f10; ///< ReLU
-    rt_variable_t* f10_inputs[1];
+    relu_local_context_t *f9_local_context;
+    rt_function_t f10; ///< Affine
+    rt_variable_t* f10_inputs[3];
     rt_variable_t* f10_outputs[1];
-    relu_local_context_t *f10_local_context;
-    rt_function_t f11; ///< Affine
-    rt_variable_t* f11_inputs[3];
-    rt_variable_t* f11_outputs[1];
-    affine_local_context_t *f11_local_context;
+    affine_local_context_t *f10_local_context;
 } nnablart_validation_local_context_t;
 
 int actual_buf_sizes[2] = {
@@ -160,55 +155,55 @@ void* nnablart_validation_allocate_context(void** params)
         memset(c->buffer_pool[i], 0, sizeof(float) * actual_buf_sizes[i]);
     }
     if(params) {
-        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[12] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[0] = *params++;
-        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[1] = *params++;
-        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[2] = *params++;
-        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[3] = *params++;
-        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[4] = *params++;
-        c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[5] = *params++;
-        c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[6] = *params++;
-        c->variable_buffers_allocate_type[20] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[7] = *params++;
-        c->variable_buffers_allocate_type[21] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[20] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[8] = *params++;
-        c->variable_buffers_allocate_type[22] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[21] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[9] = *params++;
     } else {
-        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[12] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[0] = *params++;
         c->param_pool[0] = malloc(sizeof(float) * 9);
-        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[1] = *params++;
         c->param_pool[1] = malloc(sizeof(float) * 3);
-        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[2] = *params++;
         c->param_pool[2] = malloc(sizeof(float) * 54);
-        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[3] = *params++;
         c->param_pool[3] = malloc(sizeof(float) * 6);
-        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[4] = *params++;
         c->param_pool[4] = malloc(sizeof(float) * 216);
-        c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[5] = *params++;
         c->param_pool[5] = malloc(sizeof(float) * 12);
-        c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[6] = *params++;
-        c->param_pool[6] = malloc(sizeof(float) * 288);
-        c->variable_buffers_allocate_type[20] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[6] = malloc(sizeof(float) * 56448);
+        c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[7] = *params++;
         c->param_pool[7] = malloc(sizeof(float) * 24);
-        c->variable_buffers_allocate_type[21] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[20] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[8] = *params++;
         c->param_pool[8] = malloc(sizeof(float) * 48);
-        c->variable_buffers_allocate_type[22] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[21] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[9] = *params++;
         c->param_pool[9] = malloc(sizeof(float) * 2);
     }
@@ -295,115 +290,106 @@ void* nnablart_validation_allocate_context(void** params)
     c->v8_shape[3] = 1;
     (c->v8).shape.data = c->v8_shape;
     (c->v8).data = c->buffer_pool[0];
-    // @Validation/GlobalAveragePooling_out
+    // @Validation/Affine_out
     (c->v9).type = NN_DATA_TYPE_FLOAT;
-    (c->v9).shape.size = 4;
+    (c->v9).shape.size = 2;
     c->v9_shape[0] = 1;
-    c->v9_shape[1] = 12;
-    c->v9_shape[2] = 1;
-    c->v9_shape[3] = 1;
+    c->v9_shape[1] = 24;
     (c->v9).shape.data = c->v9_shape;
     (c->v9).data = c->buffer_pool[1];
-    // @Validation/Affine_out
+    // @Validation/ReLU_out_3
     (c->v10).type = NN_DATA_TYPE_FLOAT;
     (c->v10).shape.size = 2;
     c->v10_shape[0] = 1;
     c->v10_shape[1] = 24;
     (c->v10).shape.data = c->v10_shape;
     (c->v10).data = c->buffer_pool[0];
-    // @Validation/ReLU_out_3
+    // y
     (c->v11).type = NN_DATA_TYPE_FLOAT;
     (c->v11).shape.size = 2;
     c->v11_shape[0] = 1;
-    c->v11_shape[1] = 24;
+    c->v11_shape[1] = 2;
     (c->v11).shape.data = c->v11_shape;
     (c->v11).data = c->buffer_pool[1];
-    // y
-    (c->v12).type = NN_DATA_TYPE_FLOAT;
-    (c->v12).shape.size = 2;
-    c->v12_shape[0] = 1;
-    c->v12_shape[1] = 2;
-    (c->v12).shape.data = c->v12_shape;
-    (c->v12).data = c->buffer_pool[0];
     // conv1d_1/conv/W
-    (c->v13).type = NN_DATA_TYPE_FLOAT;
-    (c->v13).shape.size = 4;
-    c->v13_shape[0] = 3;
-    c->v13_shape[1] = 1;
-    c->v13_shape[2] = 3;
-    c->v13_shape[3] = 1;
-    (c->v13).shape.data = c->v13_shape;
-    (c->v13).data = c->param_pool[0];
+    (c->v12).type = NN_DATA_TYPE_FLOAT;
+    (c->v12).shape.size = 4;
+    c->v12_shape[0] = 3;
+    c->v12_shape[1] = 1;
+    c->v12_shape[2] = 3;
+    c->v12_shape[3] = 1;
+    (c->v12).shape.data = c->v12_shape;
+    (c->v12).data = c->param_pool[0];
     // conv1d_1/conv/b
-    (c->v14).type = NN_DATA_TYPE_FLOAT;
-    (c->v14).shape.size = 1;
-    c->v14_shape[0] = 3;
-    (c->v14).shape.data = c->v14_shape;
-    (c->v14).data = c->param_pool[1];
+    (c->v13).type = NN_DATA_TYPE_FLOAT;
+    (c->v13).shape.size = 1;
+    c->v13_shape[0] = 3;
+    (c->v13).shape.data = c->v13_shape;
+    (c->v13).data = c->param_pool[1];
     // conv1d_2/conv/W
-    (c->v15).type = NN_DATA_TYPE_FLOAT;
-    (c->v15).shape.size = 4;
-    c->v15_shape[0] = 6;
-    c->v15_shape[1] = 3;
-    c->v15_shape[2] = 3;
-    c->v15_shape[3] = 1;
-    (c->v15).shape.data = c->v15_shape;
-    (c->v15).data = c->param_pool[2];
+    (c->v14).type = NN_DATA_TYPE_FLOAT;
+    (c->v14).shape.size = 4;
+    c->v14_shape[0] = 6;
+    c->v14_shape[1] = 3;
+    c->v14_shape[2] = 3;
+    c->v14_shape[3] = 1;
+    (c->v14).shape.data = c->v14_shape;
+    (c->v14).data = c->param_pool[2];
     // conv1d_2/conv/b
-    (c->v16).type = NN_DATA_TYPE_FLOAT;
-    (c->v16).shape.size = 1;
-    c->v16_shape[0] = 6;
-    (c->v16).shape.data = c->v16_shape;
-    (c->v16).data = c->param_pool[3];
+    (c->v15).type = NN_DATA_TYPE_FLOAT;
+    (c->v15).shape.size = 1;
+    c->v15_shape[0] = 6;
+    (c->v15).shape.data = c->v15_shape;
+    (c->v15).data = c->param_pool[3];
     // conv1d_3/conv/W
-    (c->v17).type = NN_DATA_TYPE_FLOAT;
-    (c->v17).shape.size = 4;
-    c->v17_shape[0] = 12;
-    c->v17_shape[1] = 6;
-    c->v17_shape[2] = 3;
-    c->v17_shape[3] = 1;
-    (c->v17).shape.data = c->v17_shape;
-    (c->v17).data = c->param_pool[4];
+    (c->v16).type = NN_DATA_TYPE_FLOAT;
+    (c->v16).shape.size = 4;
+    c->v16_shape[0] = 12;
+    c->v16_shape[1] = 6;
+    c->v16_shape[2] = 3;
+    c->v16_shape[3] = 1;
+    (c->v16).shape.data = c->v16_shape;
+    (c->v16).data = c->param_pool[4];
     // conv1d_3/conv/b
-    (c->v18).type = NN_DATA_TYPE_FLOAT;
-    (c->v18).shape.size = 1;
-    c->v18_shape[0] = 12;
-    (c->v18).shape.data = c->v18_shape;
-    (c->v18).data = c->param_pool[5];
+    (c->v17).type = NN_DATA_TYPE_FLOAT;
+    (c->v17).shape.size = 1;
+    c->v17_shape[0] = 12;
+    (c->v17).shape.data = c->v17_shape;
+    (c->v17).data = c->param_pool[5];
     // fc1/affine/W
-    (c->v19).type = NN_DATA_TYPE_FLOAT;
-    (c->v19).shape.size = 2;
-    c->v19_shape[0] = 12;
-    c->v19_shape[1] = 24;
-    (c->v19).shape.data = c->v19_shape;
-    (c->v19).data = c->param_pool[6];
+    (c->v18).type = NN_DATA_TYPE_FLOAT;
+    (c->v18).shape.size = 2;
+    c->v18_shape[0] = 2352;
+    c->v18_shape[1] = 24;
+    (c->v18).shape.data = c->v18_shape;
+    (c->v18).data = c->param_pool[6];
     // fc1/affine/b
-    (c->v20).type = NN_DATA_TYPE_FLOAT;
-    (c->v20).shape.size = 1;
-    c->v20_shape[0] = 24;
-    (c->v20).shape.data = c->v20_shape;
-    (c->v20).data = c->param_pool[7];
+    (c->v19).type = NN_DATA_TYPE_FLOAT;
+    (c->v19).shape.size = 1;
+    c->v19_shape[0] = 24;
+    (c->v19).shape.data = c->v19_shape;
+    (c->v19).data = c->param_pool[7];
     // fc2/affine/W
-    (c->v21).type = NN_DATA_TYPE_FLOAT;
-    (c->v21).shape.size = 2;
-    c->v21_shape[0] = 24;
-    c->v21_shape[1] = 2;
-    (c->v21).shape.data = c->v21_shape;
-    (c->v21).data = c->param_pool[8];
+    (c->v20).type = NN_DATA_TYPE_FLOAT;
+    (c->v20).shape.size = 2;
+    c->v20_shape[0] = 24;
+    c->v20_shape[1] = 2;
+    (c->v20).shape.data = c->v20_shape;
+    (c->v20).data = c->param_pool[8];
     // fc2/affine/b
-    (c->v22).type = NN_DATA_TYPE_FLOAT;
-    (c->v22).shape.size = 1;
-    c->v22_shape[0] = 2;
-    (c->v22).shape.data = c->v22_shape;
-    (c->v22).data = c->param_pool[9];
+    (c->v21).type = NN_DATA_TYPE_FLOAT;
+    (c->v21).shape.size = 1;
+    c->v21_shape[0] = 2;
+    (c->v21).shape.data = c->v21_shape;
+    (c->v21).data = c->param_pool[9];
 
     // Functions
     // Convolution
     c->f0_local_context = malloc(sizeof(convolution_local_context_t));
     (c->f0).num_of_inputs = 3;
     (c->f0_inputs)[0] = &(c->v0);
-    (c->f0_inputs)[1] = &(c->v13);
-    (c->f0_inputs)[2] = &(c->v14);
+    (c->f0_inputs)[1] = &(c->v12);
+    (c->f0_inputs)[2] = &(c->v13);
     (c->f0).inputs = c->f0_inputs;
     (c->f0).num_of_outputs = 1;
     (c->f0_outputs)[0] = &(c->v1);
@@ -476,8 +462,8 @@ void* nnablart_validation_allocate_context(void** params)
     c->f3_local_context = malloc(sizeof(convolution_local_context_t));
     (c->f3).num_of_inputs = 3;
     (c->f3_inputs)[0] = &(c->v3);
-    (c->f3_inputs)[1] = &(c->v15);
-    (c->f3_inputs)[2] = &(c->v16);
+    (c->f3_inputs)[1] = &(c->v14);
+    (c->f3_inputs)[2] = &(c->v15);
     (c->f3).inputs = c->f3_inputs;
     (c->f3).num_of_outputs = 1;
     (c->f3_outputs)[0] = &(c->v4);
@@ -550,8 +536,8 @@ void* nnablart_validation_allocate_context(void** params)
     c->f6_local_context = malloc(sizeof(convolution_local_context_t));
     (c->f6).num_of_inputs = 3;
     (c->f6_inputs)[0] = &(c->v6);
-    (c->f6_inputs)[1] = &(c->v17);
-    (c->f6_inputs)[2] = &(c->v18);
+    (c->f6_inputs)[1] = &(c->v16);
+    (c->f6_inputs)[2] = &(c->v17);
     (c->f6).inputs = c->f6_inputs;
     (c->f6).num_of_outputs = 1;
     (c->f6_outputs)[0] = &(c->v7);
@@ -590,52 +576,43 @@ void* nnablart_validation_allocate_context(void** params)
     (c->f7).local_context = c->f7_local_context;
     (c->f7_local_context)->inplace = 0;
     allocate_relu_local_context(&(c->f7));
-    // GlobalAveragePooling
-    (c->f8).num_of_inputs = 1;
+    // Affine
+    c->f8_local_context = malloc(sizeof(affine_local_context_t));
+    (c->f8).num_of_inputs = 3;
     (c->f8_inputs)[0] = &(c->v8);
+    (c->f8_inputs)[1] = &(c->v18);
+    (c->f8_inputs)[2] = &(c->v19);
     (c->f8).inputs = c->f8_inputs;
     (c->f8).num_of_outputs = 1;
     (c->f8_outputs)[0] = &(c->v9);
     (c->f8).outputs = c->f8_outputs;
-    (c->f8).local_context = 0;
-    allocate_global_average_pooling_local_context(&(c->f8));
-    // Affine
-    c->f9_local_context = malloc(sizeof(affine_local_context_t));
-    (c->f9).num_of_inputs = 3;
+    (c->f8).local_context = c->f8_local_context;
+    (c->f8_local_context)->base_axis = 1;
+    allocate_affine_local_context(&(c->f8));
+    // ReLU
+    c->f9_local_context = malloc(sizeof(relu_local_context_t));
+    (c->f9).num_of_inputs = 1;
     (c->f9_inputs)[0] = &(c->v9);
-    (c->f9_inputs)[1] = &(c->v19);
-    (c->f9_inputs)[2] = &(c->v20);
     (c->f9).inputs = c->f9_inputs;
     (c->f9).num_of_outputs = 1;
     (c->f9_outputs)[0] = &(c->v10);
     (c->f9).outputs = c->f9_outputs;
     (c->f9).local_context = c->f9_local_context;
-    (c->f9_local_context)->base_axis = 1;
-    allocate_affine_local_context(&(c->f9));
-    // ReLU
-    c->f10_local_context = malloc(sizeof(relu_local_context_t));
-    (c->f10).num_of_inputs = 1;
+    (c->f9_local_context)->inplace = 0;
+    allocate_relu_local_context(&(c->f9));
+    // Affine
+    c->f10_local_context = malloc(sizeof(affine_local_context_t));
+    (c->f10).num_of_inputs = 3;
     (c->f10_inputs)[0] = &(c->v10);
+    (c->f10_inputs)[1] = &(c->v20);
+    (c->f10_inputs)[2] = &(c->v21);
     (c->f10).inputs = c->f10_inputs;
     (c->f10).num_of_outputs = 1;
     (c->f10_outputs)[0] = &(c->v11);
     (c->f10).outputs = c->f10_outputs;
     (c->f10).local_context = c->f10_local_context;
-    (c->f10_local_context)->inplace = 0;
-    allocate_relu_local_context(&(c->f10));
-    // Affine
-    c->f11_local_context = malloc(sizeof(affine_local_context_t));
-    (c->f11).num_of_inputs = 3;
-    (c->f11_inputs)[0] = &(c->v11);
-    (c->f11_inputs)[1] = &(c->v21);
-    (c->f11_inputs)[2] = &(c->v22);
-    (c->f11).inputs = c->f11_inputs;
-    (c->f11).num_of_outputs = 1;
-    (c->f11_outputs)[0] = &(c->v12);
-    (c->f11).outputs = c->f11_outputs;
-    (c->f11).local_context = c->f11_local_context;
-    (c->f11_local_context)->base_axis = 1;
-    allocate_affine_local_context(&(c->f11));
+    (c->f10_local_context)->base_axis = 1;
+    allocate_affine_local_context(&(c->f10));
     return (void*)c;
 }
 
@@ -646,34 +623,34 @@ int nnablart_validation_free_context(void* context)
     for (int i = 0; i < 2; i++) {
         free(c->buffer_pool[i]);
     }
-    if(c->variable_buffers_allocate_type[13] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[12] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[0]);
     }
-    if(c->variable_buffers_allocate_type[14] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[13] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[1]);
     }
-    if(c->variable_buffers_allocate_type[15] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[14] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[2]);
     }
-    if(c->variable_buffers_allocate_type[16] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[15] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[3]);
     }
-    if(c->variable_buffers_allocate_type[17] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[16] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[4]);
     }
-    if(c->variable_buffers_allocate_type[18] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[17] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[5]);
     }
-    if(c->variable_buffers_allocate_type[19] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[18] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[6]);
     }
-    if(c->variable_buffers_allocate_type[20] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[19] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[7]);
     }
-    if(c->variable_buffers_allocate_type[21] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[20] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[8]);
     }
-    if(c->variable_buffers_allocate_type[22] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[21] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[9]);
     }
     free_convolution_local_context(&(c->f0));
@@ -716,25 +693,20 @@ int nnablart_validation_free_context(void* context)
         rt_free_func(c->f7.local_context);
         c->f7.local_context = 0;
     }
-    free_global_average_pooling_local_context(&(c->f8));
+    free_affine_local_context(&(c->f8));
     if (c->f8.local_context != 0) {
         rt_free_func(c->f8.local_context);
         c->f8.local_context = 0;
     }
-    free_affine_local_context(&(c->f9));
+    free_relu_local_context(&(c->f9));
     if (c->f9.local_context != 0) {
         rt_free_func(c->f9.local_context);
         c->f9.local_context = 0;
     }
-    free_relu_local_context(&(c->f10));
+    free_affine_local_context(&(c->f10));
     if (c->f10.local_context != 0) {
         rt_free_func(c->f10.local_context);
         c->f10.local_context = 0;
-    }
-    free_affine_local_context(&(c->f11));
-    if (c->f11.local_context != 0) {
-        rt_free_func(c->f11.local_context);
-        c->f11.local_context = 0;
     }  
     free(context);
     return NN_ERROR_CODE_NOERROR;
@@ -753,7 +725,7 @@ float* nnablart_validation_output_buffer(void* context, int index)
 {
     nnablart_validation_local_context_t* c = (nnablart_validation_local_context_t*)context;
     switch(index) {
-        case 0: return (c->v12).data;
+        case 0: return (c->v11).data;
     }
 
     return 0;
@@ -762,16 +734,16 @@ float* nnablart_validation_param_buffer(void* context, int index)
 {
     nnablart_validation_local_context_t* c = (nnablart_validation_local_context_t*)context;
     switch(index) {
-        case 0: return (c->v13).data;
-        case 1: return (c->v14).data;
-        case 2: return (c->v15).data;
-        case 3: return (c->v16).data;
-        case 4: return (c->v17).data;
-        case 5: return (c->v18).data;
-        case 6: return (c->v19).data;
-        case 7: return (c->v20).data;
-        case 8: return (c->v21).data;
-        case 9: return (c->v22).data;
+        case 0: return (c->v12).data;
+        case 1: return (c->v13).data;
+        case 2: return (c->v14).data;
+        case 3: return (c->v15).data;
+        case 4: return (c->v16).data;
+        case 5: return (c->v17).data;
+        case 6: return (c->v18).data;
+        case 7: return (c->v19).data;
+        case 8: return (c->v20).data;
+        case 9: return (c->v21).data;
     }
     return 0;
 }
@@ -786,9 +758,8 @@ int nnablart_validation_inference(void* context)
     exec_max_pooling(&(c->f5));
     exec_convolution(&(c->f6));
     exec_relu(&(c->f7));
-    exec_global_average_pooling(&(c->f8));
-    exec_affine(&(c->f9));
-    exec_relu(&(c->f10));
-    exec_affine(&(c->f11));
+    exec_affine(&(c->f8));
+    exec_relu(&(c->f9));
+    exec_affine(&(c->f10));
     return NN_ERROR_CODE_NOERROR;
 }

@@ -159,9 +159,6 @@ def audio_conv1d_prediction(x_in, test=False, aug=None):
     c3 = PF.convolution(c2, 12, (3, 1), name='conv1d_3')
     c3 = F.relu(c3)
     
-    # グローバル平均プーリング
-    c3 = F.global_average_pooling(c3)
-    
     # 全結合層（24ユニット, ReLU活性化）
     #h = PF.batch_normalization(h, name='bn4')
     c4 = PF.affine(c3, 24, name='fc1')
