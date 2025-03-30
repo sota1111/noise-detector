@@ -144,35 +144,35 @@ def audio_conv1d_prediction(x_in, test=False, aug=None):
     # 1層目: 畳み込み → ReLU → MaxPooling
     #h = PF.batch_normalization(x_in, name='bn1')
     #h = PF.convolution(h, 3, (3, 1), name='conv1d_1')
-    h = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
-    h = F.relu(h)
-    h = F.max_pooling(h, (2, 1))
+    c1 = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
+    c1 = F.relu(c1)
+    c1 = F.max_pooling(c1, (2, 1))
     
     # 2層目: 畳み込み → ReLU → MaxPooling
     #h = PF.batch_normalization(h, name='bn2')
-    h = PF.convolution(h, 6, (3, 1), name='conv1d_2')
-    h = F.relu(h)
-    h = F.max_pooling(h, (2, 1))
+    c2 = PF.convolution(c1, 6, (3, 1), name='conv1d_2')
+    c2 = F.relu(c2)
+    c2 = F.max_pooling(c2, (2, 1))
     
     # 3層目: 畳み込み → ReLU
     #h = PF.batch_normalization(h, name='bn3')
-    h = PF.convolution(h, 12, (3, 1), name='conv1d_3')
-    h = F.relu(h)
+    c3 = PF.convolution(c2, 12, (3, 1), name='conv1d_3')
+    c3 = F.relu(c3)
     
     # グローバル平均プーリング
-    h = F.global_average_pooling(h)
+    c3 = F.global_average_pooling(c3)
     
     # 全結合層（24ユニット, ReLU活性化）
     #h = PF.batch_normalization(h, name='bn4')
-    h = PF.affine(h, 24, name='fc1')
-    h = F.relu(h)
+    c4 = PF.affine(c3, 24, name='fc1')
+    c4 = F.relu(c4)
     
     # 出力層（2クラス分類: 全結合層）
     #h = PF.batch_normalization(h, name='bn5')
-    logits = PF.affine(h, 2, name='fc2')
+    c5 = PF.affine(c4, 2, name='fc2')
     # F.softmax_cross_entropy は内部で softmax を計算するため、既に softmax 済みの出力を渡すと正しい損失が計算されず、学習にも悪影響が出る
     #y = F.softmax(logits)
-    return logits
+    return c5
 
 def train():
     # 実行時に新規ログファイルを作成するための処理
