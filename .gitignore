@@ -1,0 +1,7 @@
+training/__pycache__/*
+training/utils/neu/__pycache__/*
+training/tmp.monitor/*
+training/output/*
+training/log/*
+.vscode/*
+tmp.monitor/*
