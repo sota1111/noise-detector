@@ -18,6 +18,7 @@ from _checkpoint_nnp_util import save_checkpoint, load_checkpoint, save_nnp  # �
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 input_size = 800
 
@@ -143,35 +144,32 @@ def audio_conv1d_prediction(x_in, test=False, aug=None):
     # 1層目: 畳み込み → ReLU → MaxPooling
     #h = PF.batch_normalization(x_in, name='bn1')
     #h = PF.convolution(h, 3, (3, 1), name='conv1d_1')
-    h = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
-    h = F.relu(h)
-    h = F.max_pooling(h, (2, 1))
+    c1 = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
+    c1 = F.relu(c1)
+    c1 = F.max_pooling(c1, (2, 1))
     
     # 2層目: 畳み込み → ReLU → MaxPooling
     #h = PF.batch_normalization(h, name='bn2')
-    h = PF.convolution(h, 6, (3, 1), name='conv1d_2')
-    h = F.relu(h)
-    h = F.max_pooling(h, (2, 1))
+    c2 = PF.convolution(c1, 6, (3, 1), name='conv1d_2')
+    c2 = F.relu(c2)
+    c2 = F.max_pooling(c2, (2, 1))
     
     # 3層目: 畳み込み → ReLU
     #h = PF.batch_normalization(h, name='bn3')
-    h = PF.convolution(h, 12, (3, 1), name='conv1d_3')
-    h = F.relu(h)
-    
-    # グローバル平均プーリング
-    h = F.global_average_pooling(h)
+    c3 = PF.convolution(c2, 12, (3, 1), name='conv1d_3')
+    c3 = F.relu(c3)
     
     # 全結合層（24ユニット, ReLU活性化）
     #h = PF.batch_normalization(h, name='bn4')
-    h = PF.affine(h, 24, name='fc1')
-    h = F.relu(h)
+    c4 = PF.affine(c3, 24, name='fc1')
+    c4 = F.relu(c4)
     
     # 出力層（2クラス分類: 全結合層）
     #h = PF.batch_normalization(h, name='bn5')
-    logits = PF.affine(h, 2, name='fc2')
+    c5 = PF.affine(c4, 2, name='fc2')
     # F.softmax_cross_entropy は内部で softmax を計算するため、既に softmax 済みの出力を渡すと正しい損失が計算されず、学習にも悪影響が出る
     #y = F.softmax(logits)
-    return logits
+    return c5
 
 def train():
     # 実行時に新規ログファイルを作成するための処理
@@ -317,6 +315,112 @@ def train():
     contents = save_nnp({'x': vaudio}, {'y': vpred}, args.batch_size)
     save.save(os.path.join(args.model_save_path, '{}_result.nnp'.format(args.net)), contents)    
     plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
+    plot_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
+    
+    # 個別のサンプルに対する確率を表示
+    validate_specific_samples(parameter_file)
+
+def validate_specific_samples(model_path, num_samples=10):
+    """
+    label0とlabel1のデータそれぞれnum_samples個に対してvalidationを行い、
+    各データに対する確率を表示する関数
+    
+    Args:
+        model_path (str): 学習済みモデルのパス
+        num_samples (int): 各ラベルから検証するサンプル数
+    """
+    # モデルのロード
+    audio = nn.Variable([1, 1, input_size, 1])
+    pred = audio_conv1d_prediction(audio, test=True)
+    nn.load_parameters(model_path)
+    
+    # データの準備
+    label0_files = glob.glob(os.path.join("dataset", "label0", "*.csv"))[:num_samples]
+    label1_files = glob.glob(os.path.join("dataset", "label1", "*.csv"))[:num_samples]
+    
+    print("\n=== Label 0 のサンプルの検証 ===")
+    for file_path in label0_files:
+        data = load_audio_csv(file_path)
+        if data is not None:
+            audio.d = data.reshape(1, 1, input_size, 1)
+            pred.forward(clear_buffer=True)
+            pred_reshaped = F.reshape(pred, (-1, 2))
+            pred_reshaped.forward(clear_buffer=True)
+            softmax_out = F.softmax(pred_reshaped)
+            softmax_out.forward(clear_buffer=True)
+            probabilities = softmax_out.d[0]
+            print(f"\nFile: {os.path.basename(file_path)}")
+            print(f"Label 0の確率: {probabilities[0]:.4f}")
+            print(f"Label 1の確率: {probabilities[1]:.4f}")
+            print(f"予測: Label {np.argmax(probabilities)}")
+    
+    print("\n=== Label 1 のサンプルの検証 ===")
+    for file_path in label1_files:
+        data = load_audio_csv(file_path)
+        if data is not None:
+            audio.d = data.reshape(1, 1, input_size, 1)
+            pred.forward(clear_buffer=True)
+            pred_reshaped = F.reshape(pred, (-1, 2))
+            pred_reshaped.forward(clear_buffer=True)
+            softmax_out = F.softmax(pred_reshaped)
+            softmax_out.forward(clear_buffer=True)
+            probabilities = softmax_out.d[0]
+            print(f"\nFile: {os.path.basename(file_path)}")
+            print(f"Label 0の確率: {probabilities[0]:.4f}")
+            print(f"Label 1の確率: {probabilities[1]:.4f}")
+            print(f"予測: Label {np.argmax(probabilities)}")
+
+
+def plot_confusion_matrix(vaudio, vlabel, vpred, batch_size, val_iter, log_filename):
+    """
+    検証データを使用して混合行列を計算し表示する関数
+    
+    Args:
+        vaudio: 検証用の入力データ変数
+        vlabel: 検証用のラベル変数
+        vpred: 検証用の予測変数
+        batch_size: バッチサイズ
+        val_iter: 検証イテレーション数
+        log_filename: ログを出力するファイルパス
+    """
+    print("\n最終的な検証データでの混合行列を計算中...")
+    y_true = []
+    y_pred = []
+    
+    # 検証データで予測を収集
+    val_data = iter(data_iterator_audio(batch_size, False))
+    for j in range(val_iter):
+        vaudio.d, vlabel.d = next(val_data)
+        vpred.forward(clear_buffer=True)
+        pred_labels = vpred.d.argmax(axis=1)
+        y_true.extend(vlabel.d.flatten())
+        y_pred.extend(pred_labels)
+    
+    # 混合行列の計算と表示
+    cm = confusion_matrix(y_true, y_pred)
+    plt.close('all')  # すべての図をクリア
+    fig = plt.figure(figsize=(8, 6))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Label 0', 'Label 1'])
+    disp.plot(cmap='Blues', values_format='d', ax=plt.gca())
+    plt.title('Validation Confusion Matrix')
+    plt.tight_layout()
+    plt.draw()
+    plt.pause(0.1)  # 描画が完了するのを待つ
+    plt.show(block=True)
+    plt.close(fig)
+    
+    # 混合行列の詳細な結果をログに出力
+    with open(log_filename, 'a') as log_file:
+        log_file.write("\n混合行列:\n")
+        log_file.write(str(cm))
+        log_file.write("\n")
+        
+        # クラスごとの精度の計算
+        for i in range(len(cm)):
+            true_positive = cm[i][i]
+            total = sum(cm[i])
+            accuracy = true_positive / total if total > 0 else 0
+            log_file.write(f"\nLabel {i} の精度: {accuracy:.4f}")
 
 if __name__ == '__main__':
     train()
