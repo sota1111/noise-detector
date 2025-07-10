@@ -8,7 +8,7 @@
 
 // 現在のモードを記憶する変数
 enum Mode { NONE, NOISE_DETECTOR, FOUNRIER_TRANSFORM, WAVEFORM_DRAWER, ANNOTATION, NEURAL_NETWORK };
-Mode currentMode = NONE;
+Mode currentMode = NEURAL_NETWORK;
 
 // メニュー選択用の変数
 int selectedItem = 0;
@@ -46,7 +46,14 @@ void showMenu() {
 
 void setup() {
     M5.begin();
-    showMenu();
+    // NEURAL_NETWORKモードで直接開始
+    M5.Lcd.clear();
+    M5.Lcd.setCursor(0, 0);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.printf("Neural Network...\n");
+    neuralNetwork.initNeuralNetworkData();
+    neuralNetwork.getADCAverage();
+    neuralNetwork.startTimer();
 }
 
 void loop() {
