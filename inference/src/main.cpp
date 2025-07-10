@@ -1,4 +1,4 @@
-#include <M5Unified.h>
+#include <M5Stack.h>
 #include "core/NoiseDetector.h"
 #include "core/WaveformDrawer.h"
 #include "core/FourierTransform.h"

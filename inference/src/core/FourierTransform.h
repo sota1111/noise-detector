@@ -1,7 +1,7 @@
 #ifndef FOURIERTRANSFORM_H
 #define FOURIERTRANSFORM_H
 
-#include <M5Unified.h>
+#include <M5Stack.h>
 
 #define TIME_FFT (200) //us
 #define FFT_SAMPLES (4096) // 2のべき乗

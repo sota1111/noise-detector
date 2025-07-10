@@ -1,7 +1,7 @@
 #ifndef NOISEDETECTOR_H
 #define NOISEDETECTOR_H
 
-#include <M5Unified.h>
+#include <M5Stack.h>
 #include <SD.h>
 #include <time.h>
 #include "../config/config.h"

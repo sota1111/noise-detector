@@ -1,7 +1,7 @@
 #ifndef NEURALNETWORK_H
 #define NEURALNETWORK_H
 
-#include <M5Unified.h>
+#include <M5Stack.h>
 #include <SD.h>
 #include <time.h>
 #include "config/secret.h"

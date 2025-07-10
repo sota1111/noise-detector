@@ -2,7 +2,7 @@
 #define WIFIHANDLER_H
 
 #include <WiFi.h>
-#include <M5Unified.h>
+#include <M5Stack.h>
 
 #define BASE_URL "https://6ansren87i.execute-api.ap-northeast-1.amazonaws.com/Prod/"
 #define TIMEOUT_WIFI_CONNECT (30000)

@@ -1,7 +1,7 @@
 #ifndef WAVEFORMDRAWER_H
 #define WAVEFORMDRAWER_H
 
-#include <M5Unified.h>
+#include <M5Stack.h>
 
 #define TIME_WAVE (30*1000) //us
 #define TIME_INTEGRAL (300*1000) //us

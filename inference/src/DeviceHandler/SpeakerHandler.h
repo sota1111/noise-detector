@@ -1,7 +1,7 @@
 #ifndef SPEAKERHANDLER_H
 #define SPEAKERHANDLER_H
 
-#include <M5Unified.h>
+#include <M5Stack.h>
 
 class SpeakerHandler {
 public:

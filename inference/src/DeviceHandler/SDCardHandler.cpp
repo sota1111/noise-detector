@@ -2,7 +2,7 @@
 SDCardHandler sdcardHandler;
 
 void SDCardHandler::initSDCard(const char* apartmentName, const char* roomName) {
-    if (!SD.begin(GPIO_NUM_4, SPI, 40000000)) {
+    if (!SD.begin(TFCARD_CS_PIN, SPI, 40000000)) {
         M5.Lcd.println("SD Card Mount Failed");
         delay(1000);
         return;
