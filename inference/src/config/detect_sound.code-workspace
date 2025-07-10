@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../dev/m5stack/detect_sound"
+		},
+		{
+			"name": "DetectSound",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}

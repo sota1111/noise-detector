@@ -1,0 +1,11 @@
+#ifndef SPEAKERHANDLER_H
+#define SPEAKERHANDLER_H
+
+#include <M5Unified.h>
+
+class SpeakerHandler {
+public:
+    void playTone(int frequency, int duration);
+};
+
+#endif

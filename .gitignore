@@ -5,3 +5,5 @@ training/output/*
 training/log/*
 .vscode/*
 tmp.monitor/*
+inference/src/config/secret.h
+.gitignore

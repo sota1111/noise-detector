@@ -1,135 +1,129 @@
 #include <M5Unified.h>
-#include <SD.h>
-#include "Validation/Validation_inference.h"
-#include "Validation/Validation_parameters.h"
+#include "core/NoiseDetector.h"
+#include "core/WaveformDrawer.h"
+#include "core/FourierTransform.h"
+#include "core/AnnotationData.h"
+#include "core/NeuralNetwork.h"
+#include "config/secret.h"
 
-void *_context = NULL;
-float *nn_input_buffer;
+// 現在のモードを記憶する変数
+enum Mode { NONE, NOISE_DETECTOR, FOUNRIER_TRANSFORM, WAVEFORM_DRAWER, ANNOTATION, NEURAL_NETWORK };
+Mode currentMode = NONE;
 
-void softmax(const float* logits, float* probs, int size) {
-  float max_logit = logits[0];
-  for (int i = 1; i < size; ++i) {
-    if (logits[i] > max_logit) {
-      max_logit = logits[i];
+// メニュー選択用の変数
+int selectedItem = 0;
+const int NUM_MENU_ITEMS = 5;
+const char* menuItems[] = {"Noise Detect", "FFT", "Wave Drawer", "Annotation", "Neural Network"};
+const int MENU_START_Y = 30;  // メニューの開始Y座標
+const int MENU_ITEM_HEIGHT = 30;  // メニュー項目の高さ
+
+void showMenu() {
+    M5.Lcd.clear();
+    M5.Lcd.setTextSize(2);
+    
+    // タイトルを表示
+    M5.Lcd.setCursor(0, 0);
+    M5.Lcd.printf("Select Mode");
+
+    // メニュー項目の表示（固定位置）
+    for(int i = 0; i < NUM_MENU_ITEMS; i++) {
+        M5.Lcd.setCursor(20, MENU_START_Y + (i * MENU_ITEM_HEIGHT));
+        if(i == selectedItem) {
+            M5.Lcd.setTextColor(TFT_BLUE);
+        } else {
+            M5.Lcd.setTextColor(TFT_WHITE);
+        }
+        M5.Lcd.printf("%s", menuItems[i]);
     }
-  }
-
-  float sum_exp = 0.0f;
-  for (int i = 0; i < size; ++i) {
-    probs[i] = expf(logits[i] - max_logit);  // 数値安定化のためにmaxを引く
-    sum_exp += probs[i];
-  }
-
-  for (int i = 0; i < size; ++i) {
-    probs[i] /= sum_exp;
-  }
+    
+    // 操作説明の表示（固定位置）
+    M5.Lcd.setTextColor(TFT_WHITE);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.drawString("Down", 35, 220);
+    M5.Lcd.drawString("Select", 135, 220);
+    M5.Lcd.drawString("Up", 250, 220);
 }
 
 void setup() {
-  // M5Stack の初期化
-  M5.begin();
-
-  if (!SD.begin(4)) {
-    M5.Lcd.println("SD Card Mount Failed");
-    return;
-  }
-  _context = nnablart_validation_allocate_context(Validation_parameters);
-  nn_input_buffer = nnablart_validation_input_buffer(_context, 0);
-  //M5.Lcd.println("SD Card Mounted");
+    M5.begin();
+    showMenu();
 }
 
 void loop() {
-  // SDカードのルートディレクトリをオープン
-  File root = SD.open("/");
-  if (!root) {
-    M5.Lcd.println("Failed to open root directory");
-    delay(2000);
-    return;
-  }
-
-  bool found = false;
-  // ループでルートディレクトリ内のファイルを列挙
-  while (true) {
-    File file = root.openNextFile();
-    if (!file) {
-      break;  // ファイルがなくなったらループ終了
-    }
-
-    // ディレクトリでない場合に処理
-    if (!file.isDirectory()) {
-      String filename = file.name();
-      // 拡張子が ".csv" の場合に処理する
-      if (filename.endsWith(".csv")) {
-        found = true;
-        M5.Lcd.printf("file: %s\n", filename.c_str());
-
-        // CSVファイルの読み込み（1行だけを読み込む）
-        String csvLine = file.readStringUntil('\n');
-        file.close();
-
-        if (!_context) {
-          M5.Lcd.println("NN context allocation failed");
-          continue;
+    if (currentMode == NONE) {
+        M5.update();
+        if (M5.BtnA.wasPressed()) {  // 左ボタン - 下移動
+            selectedItem = (selectedItem + 1) % NUM_MENU_ITEMS;
+            showMenu();
+        } else if (M5.BtnC.wasPressed()) {  // 右ボタン - 上移動
+            selectedItem = (selectedItem - 1 + NUM_MENU_ITEMS) % NUM_MENU_ITEMS;
+            showMenu();
+        } else if (M5.BtnB.wasPressed()) {  // 中央ボタン - 選択
+            M5.Lcd.clear();
+            switch(selectedItem) {
+                case 0: // Noise Detector
+                    M5.Lcd.setCursor(0, 0);
+                    M5.Lcd.setTextSize(1);
+                    M5.Lcd.printf("Starting Noise Detector...\n");
+                    currentMode = NOISE_DETECTOR;
+                    noiseDetector.initNoiseDetector();
+                    noiseDetector.getADCAverage();
+                    noiseDetector.startTimer();
+                    break;
+                case 1: // FFT
+                    currentMode = FOUNRIER_TRANSFORM;
+                    fourierTransform.initFourierTransform();
+                    fourierTransform.startTimer();
+                    M5.Lcd.setTextSize(2);
+                    M5.Lcd.drawString("START FFT", 115, 220);
+                    M5.Lcd.setTextSize(1);
+                    break;
+                case 2: // Waveform Drawer
+                    M5.Lcd.clear();
+                    M5.Lcd.setCursor(0, 0);
+                    M5.Lcd.setTextSize(1);
+                    M5.Lcd.printf("Starting Waveform Drawer...\n");
+                    currentMode = WAVEFORM_DRAWER;
+                    waveformDrawer.initWaveformDrawer();
+                    M5.Lcd.clear();
+                    waveformDrawer.getADCAverage();
+                    waveformDrawer.startTimer();
+                    break;
+                case 3: // Annotation
+                    M5.Lcd.clear();
+                    M5.Lcd.setCursor(0, 0);
+                    M5.Lcd.setTextSize(1);
+                    M5.Lcd.printf("Starting Annotation...\n");
+                    currentMode = ANNOTATION;
+                    annotationData.initAnnotationData();
+                    annotationData.getADCAverage();
+                    annotationData.startTimer();
+                    break;
+                case 4: // NN
+                    M5.Lcd.clear();
+                    M5.Lcd.setCursor(0, 0);
+                    M5.Lcd.setTextSize(1);
+                    M5.Lcd.printf("Neural Network...\n");
+                    currentMode = NEURAL_NETWORK;
+                    neuralNetwork.initNeuralNetworkData();
+                    neuralNetwork.getADCAverage();
+                    neuralNetwork.startTimer();
+                    break;
+            }
         }
-
-        // CSV行を解析し、各値を入力バッファに格納
-        int index = 0;
-        // strtok を使うために、String を char 配列に変換
-        char csvBuffer[csvLine.length() + 1];
-        csvLine.toCharArray(csvBuffer, csvLine.length() + 1);
-        char *token = strtok(csvBuffer, ",");
-
-        int csvSize = NNABLART_VALIDATION_INPUT0_SIZE;
-        for(index = 0; index < csvSize; index++){
-          nn_input_buffer[index] = ((float)atof(token)-(float)2048.0)/(float)2048.0;
-          token = strtok(NULL, ",");
-          if(token == NULL){
-            break;
-          }
-        }
-        // M5.Lcd.printf("csvReadSize:%d\n", index);
-
-        // 推論の実行（ミリ秒単位で計測）
-        int64_t start_time = millis();
-        nnablart_validation_inference(_context);
-        int64_t elapsed_time = millis() - start_time;
-
-        // 推論結果の取得
-        float* logits = nnablart_validation_output_buffer(_context, 0);
-        float probs[NNABLART_VALIDATION_OUTPUT0_SIZE];
-
-        softmax(logits, probs, NNABLART_VALIDATION_OUTPUT0_SIZE);
-        int top_class = 0;
-        float top_probability = 0.0f;
-        for (int classNo = 0; classNo < NNABLART_VALIDATION_OUTPUT0_SIZE; classNo++) {
-          M5.Lcd.printf("class %d: %f\n", classNo, probs[classNo]);
-          if (probs[classNo] > top_probability) {
-            top_probability = probs[classNo];
-            top_class = classNo;
-          }
-        }
-
-        // 推論結果の表示
-        M5.Lcd.printf("result: %d, ", top_class);
-        M5.Lcd.printf("time:  %lld ms\n\n", elapsed_time);
-
-        // NNコンテキストの解放
-        // int free_ret = nnablart_validation_free_context(_context);
-      } else {
-        file.close();  // .csv でないファイルは閉じる
-      }
     } else {
-      file.close();  // ディレクトリの場合は閉じる
+        if (currentMode == NOISE_DETECTOR) {
+            noiseDetector.storeNoise();
+        } else if (currentMode == FOUNRIER_TRANSFORM) {
+            M5.update();
+            if (M5.BtnB.wasPressed()) {
+                fourierTransform.startFFT();
+            }
+        } else if (currentMode == WAVEFORM_DRAWER) {
+        } else if (currentMode == ANNOTATION) {
+            annotationData.storeNoise();
+        } else if (currentMode == NEURAL_NETWORK) {
+            neuralNetwork.storeNoise();
+        }
     }
-  }
-  root.close();
-
-  if (!found) {
-    M5.Lcd.println("No .csv files found in root directory");
-  }
-
-  // すべてのファイル処理後、ループを停止する場合は以下の無限ループで対応
-  while (1) {
-    delay(1000);
-  }
 }
