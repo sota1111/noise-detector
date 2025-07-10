@@ -46,6 +46,10 @@ void showMenu() {
 
 void setup() {
     M5.begin();
+    // シリアル通信の初期化
+    Serial.begin(115200);
+    Serial.println("Neural Network System Started");
+    
     // NEURAL_NETWORKモードで直接開始
     M5.Lcd.clear();
     M5.Lcd.setCursor(0, 0);

@@ -323,10 +323,14 @@ void NeuralNetwork::storeNoise() {
         M5.Lcd.setTextSize(FONT_SIZE_LARGE);
         M5.Lcd.setCursor(0, 60);
 
+        // シリアル通信で検出クラスを送信
+        Serial.print("DETECTED_CLASS:");
         if (soundClass == 0) {
             M5.Lcd.println("VOICE");
+            Serial.println("CLASS_NAME:VOICE");
         } else if (soundClass == 1) {
             M5.Lcd.println("CLAP");
+            Serial.println("CLASS_NAME:CLAP");
         }
         M5.Lcd.setTextSize(1);
         delay(1000);
