@@ -50,10 +50,10 @@ def add_const_to_validation_parameters(file_path):
 
 def move_files_to_validation():
     """
-    output_csrc にある4つのファイルを 1つ上の階層の inference/src/Validation に上書きで移動する
+    output_csrc にある4つのファイルを 1つ上の階層の inference/src/core/Validation に上書きで移動する
     """
     src_dir = "output_csrc"
-    dst_dir = os.path.join("..", "inference", "src", "Validation")
+    dst_dir = os.path.join("..", "inference", "src", "core", "Validation")
     filenames = [
         "Validation_inference.c",
         "Validation_inference.h",
