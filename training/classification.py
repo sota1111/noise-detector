@@ -20,7 +20,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
-input_size = 800
+input_size = 2000
 
 def load_audio_csv(file_path, normalize=True):
     """

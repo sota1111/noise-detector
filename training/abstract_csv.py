@@ -17,10 +17,10 @@ for src_dir, tgt_dir in zip(source_dirs, target_dirs):
             # ヘッダーなしで読み込み
             df = pd.read_csv(src_file, header=None)
             
-            # 800列分を抽出（Pythonは0-indexなので）
+            # 2000列分を抽出（Pythonは0-indexなので）
             base_col = 4799
-            extracted_df = df.iloc[:, base_col:base_col+800]
-            
+            extracted_df = df.iloc[:, base_col:base_col+2000]
+
             # 出力先のファイルパス
             tgt_file = os.path.join(tgt_dir, filename)
             # インデックスやヘッダーは書き込まない

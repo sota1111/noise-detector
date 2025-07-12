@@ -135,8 +135,8 @@ typedef struct {
 } nnablart_validation_local_context_t;
 
 int actual_buf_sizes[2] = {
-    2394,
-    2394,
+    5994,
+    5994,
 };
 
 // void *(*rt_variable_malloc_func)(size_t size) = malloc;
@@ -196,7 +196,7 @@ void* nnablart_validation_allocate_context(void** params)
         c->param_pool[5] = malloc(sizeof(float) * 12);
         c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[6] = *params++;
-        c->param_pool[6] = malloc(sizeof(float) * 56448);
+        c->param_pool[6] = malloc(sizeof(float) * 142848);
         c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[7] = *params++;
         c->param_pool[7] = malloc(sizeof(float) * 24);
@@ -214,7 +214,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v0).shape.size = 4;
     c->v0_shape[0] = 1;
     c->v0_shape[1] = 1;
-    c->v0_shape[2] = 800;
+    c->v0_shape[2] = 2000;
     c->v0_shape[3] = 1;
     (c->v0).shape.data = c->v0_shape;
     (c->v0).data = c->buffer_pool[0];
@@ -223,7 +223,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v1).shape.size = 4;
     c->v1_shape[0] = 1;
     c->v1_shape[1] = 3;
-    c->v1_shape[2] = 798;
+    c->v1_shape[2] = 1998;
     c->v1_shape[3] = 1;
     (c->v1).shape.data = c->v1_shape;
     (c->v1).data = c->buffer_pool[1];
@@ -232,7 +232,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v2).shape.size = 4;
     c->v2_shape[0] = 1;
     c->v2_shape[1] = 3;
-    c->v2_shape[2] = 798;
+    c->v2_shape[2] = 1998;
     c->v2_shape[3] = 1;
     (c->v2).shape.data = c->v2_shape;
     (c->v2).data = c->buffer_pool[0];
@@ -241,7 +241,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v3).shape.size = 4;
     c->v3_shape[0] = 1;
     c->v3_shape[1] = 3;
-    c->v3_shape[2] = 399;
+    c->v3_shape[2] = 999;
     c->v3_shape[3] = 1;
     (c->v3).shape.data = c->v3_shape;
     (c->v3).data = c->buffer_pool[1];
@@ -250,7 +250,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v4).shape.size = 4;
     c->v4_shape[0] = 1;
     c->v4_shape[1] = 6;
-    c->v4_shape[2] = 397;
+    c->v4_shape[2] = 997;
     c->v4_shape[3] = 1;
     (c->v4).shape.data = c->v4_shape;
     (c->v4).data = c->buffer_pool[0];
@@ -259,7 +259,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v5).shape.size = 4;
     c->v5_shape[0] = 1;
     c->v5_shape[1] = 6;
-    c->v5_shape[2] = 397;
+    c->v5_shape[2] = 997;
     c->v5_shape[3] = 1;
     (c->v5).shape.data = c->v5_shape;
     (c->v5).data = c->buffer_pool[1];
@@ -268,7 +268,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v6).shape.size = 4;
     c->v6_shape[0] = 1;
     c->v6_shape[1] = 6;
-    c->v6_shape[2] = 198;
+    c->v6_shape[2] = 498;
     c->v6_shape[3] = 1;
     (c->v6).shape.data = c->v6_shape;
     (c->v6).data = c->buffer_pool[0];
@@ -277,7 +277,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v7).shape.size = 4;
     c->v7_shape[0] = 1;
     c->v7_shape[1] = 12;
-    c->v7_shape[2] = 196;
+    c->v7_shape[2] = 496;
     c->v7_shape[3] = 1;
     (c->v7).shape.data = c->v7_shape;
     (c->v7).data = c->buffer_pool[1];
@@ -286,7 +286,7 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v8).shape.size = 4;
     c->v8_shape[0] = 1;
     c->v8_shape[1] = 12;
-    c->v8_shape[2] = 196;
+    c->v8_shape[2] = 496;
     c->v8_shape[3] = 1;
     (c->v8).shape.data = c->v8_shape;
     (c->v8).data = c->buffer_pool[0];
@@ -359,7 +359,7 @@ void* nnablart_validation_allocate_context(void** params)
     // fc1/affine/W
     (c->v18).type = NN_DATA_TYPE_FLOAT;
     (c->v18).shape.size = 2;
-    c->v18_shape[0] = 2352;
+    c->v18_shape[0] = 5952;
     c->v18_shape[1] = 24;
     (c->v18).shape.data = c->v18_shape;
     (c->v18).data = c->param_pool[6];
