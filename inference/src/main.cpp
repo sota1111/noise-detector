@@ -134,7 +134,7 @@ void loop() {
         } else if (currentMode == ANNOTATION) {
             annotationData.storeNoise();
         } else if (currentMode == NEURAL_NETWORK) {
-            neuralNetwork.storeNoise();
+            neuralNetwork.processAudio();
         }
     }
 }

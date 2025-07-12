@@ -15,16 +15,18 @@ NeuralNetwork::NeuralNetwork() {
     neuralNetwork.micValue = 0;
     val_buf = nullptr;
     isRequestSpeaker = false;
-    isDataStored = false;
     isTimerStopped = false;
     write_index = 0;
-    detect_index = 0;
+    adcAverageDetect = 0;
+    lastNNExecution = 0;
+    nnInterval = 1000; // 1秒間隔
     integralValue = 0;
     sampleIntegralCount = 0;
-    adcAverageDetect = 0;
-    for (int i = 0; i < MAX_NOISE_EVENTS; i++) {
-        noiseEventTimes_A[i] = 0;
-    }
+    dBValues = nullptr;
+    dBValueIndex = 0;
+    maxDbIndex = 0;
+    maxDbValue = 0;
+    isDataStored = false;
     _context = nnablart_validation_allocate_context(Validation_parameters);
     nn_input_buffer = nnablart_validation_input_buffer(_context, 0);
 }
@@ -37,6 +39,10 @@ void NeuralNetwork::freeBuffer() {
     if (val_buf) {
         delete[] val_buf;
         val_buf = nullptr;
+    }
+    if (dBValues) {
+        delete[] dBValues;
+        dBValues = nullptr;
     }
 }
 
@@ -78,15 +84,14 @@ void NeuralNetwork::initBuf() {
     for (int i = 0; i < RECORD_MAX_LEN; i++) {
         val_buf[i] = 0;
     }
-    for (int i = 0; i < MAX_NOISE_EVENTS; i++) {
-        noiseEventTimes_A[i] = 0;
-    }
     write_index = 0;
-    detect_index = 0;
-    dBValue_A = 0;
-    isDataStored = false;
+    lastNNExecution = 0;
     integralValue = 0;
     sampleIntegralCount = 0;
+    dBValueIndex = 0;
+    maxDbIndex = 0;
+    maxDbValue = 0;
+    isDataStored = false;
 }
 
 void NeuralNetwork::initNeuralNetworkData() {
@@ -96,6 +101,16 @@ void NeuralNetwork::initNeuralNetworkData() {
         M5.Lcd.println("Failed to allocate buffer");
         return;
     }
+    
+    // 1秒間のサンプル数でdBValuesバッファを確保
+    int samplesPerSecond = 1000000 / TIME_IRQ; // 1秒間のサンプル数 (10000サンプル)
+    dBValues = new int[samplesPerSecond];
+    if (dBValues == nullptr) {
+        Serial.println("Failed to allocate dB buffer");
+        return;
+    }
+    Serial.println("dB buffer allocated successfully");
+    
     initBuf();
 #if 0
     sdcardHandler.initSDCard(APARTMENT_NAME, ROOM_NAME);
@@ -132,43 +147,6 @@ int NeuralNetwork::calculateDbValue(int avgIntegral) {
     }
     return dBValue;
 }
-
-// 複数回検出
-bool NeuralNetwork::detectNoise_A(int avgIntegral) {
-    static int noiseEventIndex_A = 0;
-    int dBValue = calculateDbValue(avgIntegral);
-    unsigned long currentTime = millis();
-
-    if (dBValue >= INSTANT_NOISE_THRESHOLD_DB) {
-        for (int i = 0; i < MAX_NOISE_EVENTS; ++i) {
-            long difTime = currentTime - noiseEventTimes_A[i];
-            if ((noiseEventTimes_A[i] != 0) && (difTime < TIME_IGNORE_NOISE)){
-                return false;
-            }   
-        }
-        noiseEventTimes_A[noiseEventIndex_A] = currentTime;
-        noiseEventIndex_A = (noiseEventIndex_A + 1) % MAX_NOISE_EVENTS;
-
-        unsigned long observationTimeMillis = OBSERVATION_DURATION_SECOND * 1000;
-        int eventCount = 1;
-
-        for (int i = 0; i < MAX_NOISE_EVENTS; ++i) {
-            if (noiseEventTimes_A[i] != 0) {
-                long difTime = currentTime - noiseEventTimes_A[i];
-                if (difTime <= observationTimeMillis) {
-                    eventCount++;
-                }
-            }
-        }
-        if (eventCount >= NOISE_EVENT_COUNT_THRESHOLD) {
-            dBValue_A = dBValue;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 // ============================================================
 //  移動積分を計算する関数
 // ============================================================
@@ -193,46 +171,36 @@ int NeuralNetwork::calculateMovingIntegral(int currentMicValue, int writeIndex)
 //  updateBuffer から移動積分の計算処理を関数呼び出しに置き換え
 // ============================================================
 void NeuralNetwork::updateBuffer(int micValue) {
-    static unsigned int detect_count = 0;
-    static bool isNoiseDetected      = false;
-    static unsigned int startTime    = 0;
-    static char noiseSource;
-
+    static int debugCount = 0;
+    
     if (!isDataStored) {
-        // ノイズ検出前後のデータを記録        
+        // 連続的にバッファに音声データを保存
         write_index = (write_index + 1) % RECORD_MAX_LEN;
         val_buf[write_index] = micValue;
 
-        // 移動積分の計算
+        // 最新の音声データでデシベル値を計算
         int avgIntegral = calculateMovingIntegral(micValue, write_index);
+        int dBValue = calculateDbValue(avgIntegral);
 
-        // ノイズ検出
-        bool isDetectNoise_A = (detectNoise_A(avgIntegral));
-
-        if ( ( isDetectNoise_A) && (isNoiseDetected == false) ) {
-            isNoiseDetected = true;
-            detect_index = write_index;
-            //M5.Lcd.println("NOISE DETECTED");
-            startTime = millis();
-        }
-        if(isNoiseDetected){
-            detect_count++;
-        }
-        // ノイズ検出後、データを貯め続ける。
-        if(detect_count > RECORD_AFTER_LEN){
-            isDataStored = true;
-            timerStop(timer_nn);
-            int dBValue = dBValue_A;
+        // デシベル値を保存
+        int samplesPerSecond = 1000000 / TIME_IRQ;
+        if (dBValueIndex < samplesPerSecond) {
+            dBValues[dBValueIndex] = dBValue;
             
-            //M5.Lcd.printf("dB: %d\n", dBValue);
-            isRequestSpeaker = true;
-            int stopTime = millis() - startTime;
-            //M5.Lcd.printf("Time: %d\n", stopTime);
-
-            // 関数スコープの変数初期化
-            detect_count = 0;
-            isNoiseDetected      = false;
-            startTime    = 0;
+            // 最大dB値とそのインデックスを更新
+            if (dBValue > maxDbValue) {
+                maxDbValue = dBValue;
+                maxDbIndex = write_index;
+            }
+            
+            dBValueIndex++;
+            
+            // 1秒分のデータが溜まったらタイマーを止める
+            if (dBValueIndex >= samplesPerSecond) {
+                isDataStored = true;
+                timerStop(timer_nn);
+                Serial.printf("1sec data collected: samples=%d, maxDb=%d\n", dBValueIndex, maxDbValue);
+            }
         }
     }
 }
@@ -240,8 +208,8 @@ void NeuralNetwork::updateBuffer(int micValue) {
 void NeuralNetwork::logNoiseTimestamp() {
     struct tm timeInfo;
     String csvData = "";
-    // detect_index+RECORD_AFTER_LENがcsvDataの先頭になるようにする
-    int startIndex = detect_index + RECORD_AFTER_LEN + 1;
+    // write_index+RECORD_AFTER_LENがcsvDataの先頭になるようにする
+    int startIndex = write_index + RECORD_AFTER_LEN + 1;
     int endIndex = startIndex + RECORD_MAX_LEN;
 
     for (int i = startIndex; i < endIndex; i++) {
@@ -273,12 +241,15 @@ int NeuralNetwork::exeNeuralNetwork() {
         M5.Lcd.println("NN context allocation failed");
         return -1;
     }
-    int startIndex = detect_index - NN_BEFORE_LEN;
+    
+    // 最大dB値の前NN_BEFORE_LENのデータを使用
+    int startIndex = maxDbIndex - NN_BEFORE_LEN;
     int endIndex = startIndex + NNABLART_VALIDATION_INPUT0_SIZE;
 
     int bufferIndex = 0;
     for (int index = startIndex; index < endIndex; index++) {
-        nn_input_buffer[bufferIndex] = ((float)(val_buf[index % RECORD_MAX_LEN] - 2048)) / 2048.0;
+        int bufIndex = (index + RECORD_MAX_LEN) % RECORD_MAX_LEN;
+        nn_input_buffer[bufferIndex] = ((float)(val_buf[bufIndex] - 2048)) / 2048.0;
         bufferIndex++;
     }
 
@@ -294,8 +265,15 @@ int NeuralNetwork::exeNeuralNetwork() {
     softmax(logits, probs, NNABLART_VALIDATION_OUTPUT0_SIZE);
     int top_class = 0;
     float top_probability = 0.0f;
+
+    // 詳細情報表示エリアをクリアして表示
+    M5.Lcd.fillRect(0, 40, 320, 90, TFT_BLACK);
+    M5.Lcd.setCursor(0, 40);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+    
     for (int classNo = 0; classNo < NNABLART_VALIDATION_OUTPUT0_SIZE; classNo++) {
-      M5.Lcd.printf("class %d: %f\n", classNo, probs[classNo]);
+      M5.Lcd.printf("class %d: %.3f\n", classNo, probs[classNo]);
       if (probs[classNo] > top_probability) {
         top_probability = probs[classNo];
         top_class = classNo;
@@ -303,40 +281,69 @@ int NeuralNetwork::exeNeuralNetwork() {
     }
 
     // 推論結果の表示
-    M5.Lcd.printf("result: %d, ", top_class);
-    M5.Lcd.printf("time:  %lld ms\n\n", elapsed_time);
+    M5.Lcd.printf("result: %d, time: %lld ms\n", top_class, elapsed_time);
     return top_class;
 }
 
 
-void NeuralNetwork::storeNoise() {
-    if (isRequestSpeaker) {
-        speakerHandler.playTone(440, 100);
-        isRequestSpeaker = false;
-    }
-
-    if (isDataStored) {
-        //notificationAWS();
-        //logNoiseTimestamp();
+void NeuralNetwork::processAudio() {
+    // 1秒分のデータが溜まったらニューラルネットワークを実行
+    if(isDataStored){
         int soundClass = exeNeuralNetwork();
-
-        M5.Lcd.setTextSize(FONT_SIZE_LARGE);
-        M5.Lcd.setCursor(0, 60);
-
+        
+        // 結果が変わった場合のみ画面を更新
+        static int lastSoundClass = -1;
+        static int lastDbValue = -1;
+        if (soundClass != lastSoundClass || abs(maxDbValue - lastDbValue) > 2) {
+            // 結果表示エリアのみクリア
+            M5.Lcd.fillRect(0, 130, 320, 110, TFT_BLACK);
+            M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5.Lcd.setTextSize(2);
+            M5.Lcd.setCursor(0, 130);
+            
+            // デシベル値を表示
+            M5.Lcd.printf("dB: %d\n", maxDbValue);
+            
+            // クラス名を表示
+            M5.Lcd.setTextSize(FONT_SIZE_LARGE);
+            M5.Lcd.setCursor(0, 160);
+            if (soundClass == 0) {
+                M5.Lcd.println("VOICE");
+            } else if (soundClass == 1) {
+                M5.Lcd.println("CLAP");
+            } else {
+                M5.Lcd.println("UNKNOWN");
+            }
+            M5.Lcd.setTextSize(1);
+            lastSoundClass = soundClass;
+            lastDbValue = maxDbValue;
+        }
+        
         // シリアル通信で検出クラスを送信
         Serial.print("DETECTED_CLASS:");
+        Serial.println(soundClass);
+        Serial.print("DB_VALUE:");
+        Serial.println(maxDbValue);
+        
+        // クラス名もシリアル送信
         if (soundClass == 0) {
-            M5.Lcd.println("VOICE");
             Serial.println("CLASS_NAME:VOICE");
         } else if (soundClass == 1) {
-            M5.Lcd.println("CLAP");
             Serial.println("CLASS_NAME:CLAP");
+        } else {
+            Serial.println("CLASS_NAME:UNKNOWN");
         }
-        M5.Lcd.setTextSize(1);
-        delay(1000);
+        
+        // NN処理完了後、次の1秒間のデータ収集を開始
         isDataStored = false;
-        //M5.Lcd.println("NOISE STORED");
-        restartTimer();
+        dBValueIndex = 0;
+        maxDbValue = 0;
+        maxDbIndex = 0;
+        
+        // タイマーを再開
+        Serial.println("Restarting timer for next cycle");
+        timerRestart(timer_nn);
+        timerStart(timer_nn);
     }
 }
 
@@ -349,10 +356,24 @@ void NeuralNetwork::startTimer() {
     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.println("Neural Network MODE");
+    Serial.println("Starting timer...");
+    
     timer_nn = timerBegin(0, 80, true);
+    if (timer_nn == NULL) {
+        M5.Lcd.println("Timer begin failed");
+        Serial.println("Timer begin failed");
+        return;
+    }
+    Serial.println("Timer created");
+    
     timerAttachInterrupt(timer_nn, &onTimerNN, true);
+    Serial.println("Interrupt attached");
+    
     timerAlarmWrite(timer_nn, TIME_IRQ, true);
+    Serial.println("Alarm written");
+    
     timerAlarmEnable(timer_nn);
+    Serial.println("Timer started");
 }
 
 void NeuralNetwork::restartTimer() {

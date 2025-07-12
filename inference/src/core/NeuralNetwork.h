@@ -39,25 +39,30 @@
 class NeuralNetwork {
 private:
     bool isRequestSpeaker;
-    bool isDataStored;
     bool isTimerStopped;
-    int dBValue_A;
     unsigned int write_index;
-    unsigned int detect_index;
     int16_t* val_buf=nullptr;
-
-    // 騒音検出
-    unsigned long noiseEventTimes_A[MAX_NOISE_EVENTS];
-    long integralValue;
-    int  sampleIntegralCount;
     int16_t adcAverageDetect;
+    
+    // 1秒ごとのNN実行用
+    unsigned long lastNNExecution;
+    unsigned long nnInterval;
+    
+    // 移動積分計算用
+    long integralValue;
+    int sampleIntegralCount;
+    
+    // 1秒間のデシベル値とピーク検出用
+    int* dBValues;
+    int dBValueIndex;
+    int maxDbIndex;
+    int maxDbValue;
+    bool isDataStored;
 
     void initBuf();
-    bool detectNoise_A(int avgIntegral);
     int calculateDbValue(int avgIntegral);
     int calculateMovingIntegral(int currentMicValue, int writeIndex);
     void logNoiseTimestamp();
-    void notificationAWS();
     void freeBuffer();
     void softmax(const float* logits, float* probs, int size);
     int exeNeuralNetwork();
@@ -71,7 +76,7 @@ public:
     void updateBuffer(int micValue);
     void startTimer();
     void restartTimer();
-    bool judgeRestartTimer();
+    void processAudio();
     void storeNoise();
 };
 
