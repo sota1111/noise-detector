@@ -6,6 +6,10 @@ trainingディレクトリで実行する
 ``` bash 
 python3 abstract_csv.py
 ```
+### データセットを確認
+``` bash 
+python3 display_csv.py
+```
 ### 学習
 ``` bash 
 python3 classification.py -c cudnn -n conv1d -o output --batch-size 32 --learning-rate 0.001 --max-iter 200 --val-interval 10 --val-iter 20

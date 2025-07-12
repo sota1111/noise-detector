@@ -18,9 +18,21 @@ from _checkpoint_nnp_util import save_checkpoint, load_checkpoint, save_nnp  # �
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
 
 input_size = 2000
+num_classes = 34  # label0-33の34クラス
+
+# カテゴリ名の定義
+category_names = [
+    'dog', 'cat', 'rain', 'sea_waves', 'crackling_fire', 'crickets', 
+    'wind', 'water_drops', 'thunderstorm', 'crying_baby', 'sneezing', 
+    'clapping', 'breathing', 'coughing', 'footsteps', 'laughing', 
+    'brushing_teeth', 'snoring', 'door_wood_knock', 'mouse_click', 
+    'keyboard_typing', 'can_opening', 'washing_machine', 'vacuum_cleaner', 
+    'toilet_flush', 'clock_alarm', 'clock_tick', 'glass_breaking', 
+    'door_wood_creaks', 'siren', 'car_horn', 'engine', 'train', 'silent'
+]
 
 def load_audio_csv(file_path, normalize=True):
     """
@@ -28,16 +40,17 @@ def load_audio_csv(file_path, normalize=True):
     
     Args:
         file_path (str): 読み込むCSVファイルのパス。
-        normalize (bool): 各サンプル内の最大値で0~1に正規化するかどうか。
+        normalize (bool): 0-4095の値を-1~1に正規化するかどうか。
     
     Returns:
-        np.ndarray: 読み込んだ音声データの配列。（shape: (1,input_size) を想定）
+        np.ndarray: 読み込んだ音声データの配列。（shape: (input_size,) を想定）
     """
     try:
         df = pd.read_csv(file_path, header=None)
         data = df.values.flatten()[:input_size]
         if normalize:
-            data = (data - 2048) / 2048.0
+            # 0-4095の値を-1~1に正規化
+            data = (data - 2047.5) / 2047.5
         return data
     except Exception as e:
         print(f"Error reading file {file_path}: {e}")
@@ -46,12 +59,21 @@ def load_audio_csv(file_path, normalize=True):
 
 def data_iterator_audio(batch_size, train, rng=None):
     """
-    dataset/label0, dataset/label1 に格納されたCSVファイルから音声データを読み込み、
+    dataset/label0~label33 に格納されたCSVファイルから音声データを読み込み、
     バッチごとに返すイテレータ（常に batch_size 個のサンプルを返す）。
     """
-    label0_files = glob.glob(os.path.join("dataset", "label0", "*.csv"))
-    label1_files = glob.glob(os.path.join("dataset", "label1", "*.csv"))
-    files = [(f, 0) for f in label0_files] + [(f, 1) for f in label1_files]
+    files = []
+    
+    # 全ラベルのファイルを収集
+    for label in range(num_classes):
+        label_files = glob.glob(os.path.join("dataset", f"label{label}", "*.csv"))
+        files.extend([(f, label) for f in label_files])
+    
+    print(f"Total files loaded: {len(files)}")
+    for label in range(num_classes):
+        label_count = len([f for f, l in files if l == label])
+        print(f"Label {label} ({category_names[label]}): {label_count} files")
+    
     rng = rng or np.random.RandomState(1234)
 
     while True:
@@ -124,9 +146,9 @@ def augmentation(h, test, aug):
     if aug is None:
         aug = not test
     if aug:
-        # ランダムな音量スケーリング（0.8〜1.2倍）
+        # ランダムな音量スケーリング（0.2〜1.0倍）
         batch_size = h.shape[0]
-        scale_factors = np.random.uniform(0.8, 1.2, size=(batch_size, 1, 1, 1)).astype(np.float32)
+        scale_factors = np.random.uniform(0.2, 1.0, size=(batch_size, 1, 1, 1)).astype(np.float32)
         scale = nn.Variable(scale_factors.shape, need_grad=False)
         scale.d = scale_factors
         h = h * scale
@@ -139,8 +161,11 @@ def augmentation(h, test, aug):
 
 def audio_conv1d_prediction(x_in, test=False, aug=None):
     """
-    batch_normalizationは、学習時とテスト時で挙動が異なるため、コメントアウトしておく。
+    34クラス分類用のCNNモデル
     """
+    # データ拡張
+    h = augmentation(x_in, test, aug)
+    
     # 1層目: 畳み込み → ReLU → MaxPooling
     #h = PF.batch_normalization(x_in, name='bn1')
     #h = PF.convolution(h, 3, (3, 1), name='conv1d_1')
@@ -320,9 +345,9 @@ def train():
     # 個別のサンプルに対する確率を表示
     validate_specific_samples(parameter_file)
 
-def validate_specific_samples(model_path, num_samples=10):
+def validate_specific_samples(model_path, num_samples=5):
     """
-    label0とlabel1のデータそれぞれnum_samples個に対してvalidationを行い、
+    各ラベルのデータnum_samples個に対してvalidationを行い、
     各データに対する確率を表示する関数
     
     Args:
@@ -334,41 +359,31 @@ def validate_specific_samples(model_path, num_samples=10):
     pred = audio_conv1d_prediction(audio, test=True)
     nn.load_parameters(model_path)
     
-    # データの準備
-    label0_files = glob.glob(os.path.join("dataset", "label0", "*.csv"))[:num_samples]
-    label1_files = glob.glob(os.path.join("dataset", "label1", "*.csv"))[:num_samples]
-    
-    print("\n=== Label 0 のサンプルの検証 ===")
-    for file_path in label0_files:
-        data = load_audio_csv(file_path)
-        if data is not None:
-            audio.d = data.reshape(1, 1, input_size, 1)
-            pred.forward(clear_buffer=True)
-            pred_reshaped = F.reshape(pred, (-1, 2))
-            pred_reshaped.forward(clear_buffer=True)
-            softmax_out = F.softmax(pred_reshaped)
-            softmax_out.forward(clear_buffer=True)
-            probabilities = softmax_out.d[0]
-            print(f"\nFile: {os.path.basename(file_path)}")
-            print(f"Label 0の確率: {probabilities[0]:.4f}")
-            print(f"Label 1の確率: {probabilities[1]:.4f}")
-            print(f"予測: Label {np.argmax(probabilities)}")
-    
-    print("\n=== Label 1 のサンプルの検証 ===")
-    for file_path in label1_files:
-        data = load_audio_csv(file_path)
-        if data is not None:
-            audio.d = data.reshape(1, 1, input_size, 1)
-            pred.forward(clear_buffer=True)
-            pred_reshaped = F.reshape(pred, (-1, 2))
-            pred_reshaped.forward(clear_buffer=True)
-            softmax_out = F.softmax(pred_reshaped)
-            softmax_out.forward(clear_buffer=True)
-            probabilities = softmax_out.d[0]
-            print(f"\nFile: {os.path.basename(file_path)}")
-            print(f"Label 0の確率: {probabilities[0]:.4f}")
-            print(f"Label 1の確率: {probabilities[1]:.4f}")
-            print(f"予測: Label {np.argmax(probabilities)}")
+    for label in range(num_classes):
+        label_files = glob.glob(os.path.join("dataset", f"label{label}", "*.csv"))[:num_samples]
+        print(f"\n=== Label {label} ({category_names[label]}) のサンプルの検証 ===")
+        
+        for file_path in label_files:
+            data = load_audio_csv(file_path)
+            if data is not None:
+                audio.d = data.reshape(1, 1, input_size, 1)
+                pred.forward(clear_buffer=True)
+                pred_reshaped = F.reshape(pred, (-1, num_classes))
+                pred_reshaped.forward(clear_buffer=True)
+                softmax_out = F.softmax(pred_reshaped)
+                softmax_out.forward(clear_buffer=True)
+                probabilities = softmax_out.d[0]
+                predicted_label = np.argmax(probabilities)
+                confidence = probabilities[predicted_label]
+                
+                print(f"File: {os.path.basename(file_path)}")
+                print(f"予測: Label {predicted_label} ({category_names[predicted_label]}) - 信頼度: {confidence:.4f}")
+                print(f"正解: Label {label} ({category_names[label]})")
+                print(f"Top 3 予測:")
+                top3_indices = np.argsort(probabilities)[-3:][::-1]
+                for idx in top3_indices:
+                    print(f"  {category_names[idx]}: {probabilities[idx]:.4f}")
+                print("-" * 50)
 
 
 def plot_confusion_matrix(vaudio, vlabel, vpred, batch_size, val_iter, log_filename):
@@ -397,30 +412,36 @@ def plot_confusion_matrix(vaudio, vlabel, vpred, batch_size, val_iter, log_filen
         y_pred.extend(pred_labels)
     
     # 混合行列の計算と表示
-    cm = confusion_matrix(y_true, y_pred)
-    plt.close('all')  # すべての図をクリア
-    fig = plt.figure(figsize=(8, 6))
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Label 0', 'Label 1'])
-    disp.plot(cmap='Blues', values_format='d', ax=plt.gca())
-    plt.title('Validation Confusion Matrix')
-    plt.tight_layout()
-    plt.draw()
-    plt.pause(0.1)  # 描画が完了するのを待つ
-    plt.show(block=True)
-    plt.close(fig)
+    cm = confusion_matrix(y_true, y_pred, labels=list(range(num_classes)))
     
-    # 混合行列の詳細な結果をログに出力
+    # 大きな混合行列を表示するため、図のサイズを調整
+    plt.close('all')
+    fig = plt.figure(figsize=(20, 16))
+    
+    # 混合行列の表示（数値は小さくして見やすく）
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=category_names)
+    disp.plot(cmap='Blues', values_format='d', ax=plt.gca())
+    plt.title('Validation Confusion Matrix (34 Classes)')
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    plt.show()
+    
+    # 分類レポートとクラス別精度をログに出力
     with open(log_filename, 'a') as log_file:
         log_file.write("\n混合行列:\n")
         log_file.write(str(cm))
+        log_file.write("\n\n分類レポート:\n")
+        log_file.write(classification_report(y_true, y_pred, target_names=category_names))
         log_file.write("\n")
         
         # クラスごとの精度の計算
-        for i in range(len(cm)):
+        log_file.write("\n各クラスの精度:\n")
+        for i in range(num_classes):
             true_positive = cm[i][i]
             total = sum(cm[i])
             accuracy = true_positive / total if total > 0 else 0
-            log_file.write(f"\nLabel {i} の精度: {accuracy:.4f}")
+            log_file.write(f"Label {i} ({category_names[i]}): {accuracy:.4f}\n")
 
 if __name__ == '__main__':
     train()
