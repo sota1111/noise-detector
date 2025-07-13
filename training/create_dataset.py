@@ -136,7 +136,7 @@ def find_quietest_segment(audio_file_path, target_samples=2000, sample_interval_
 def create_dataset():
     """
     ESC-50データセットから指定されたカテゴリの音声データをCSVに変換し、
-    training/dataset下にlabel番号付きフォルダに格納する
+    dataset下にlabel番号付きフォルダに格納する
     """
     
     # 対象カテゴリのマッピング（指定された順序でlabel0から番号付け）
@@ -154,7 +154,7 @@ def create_dataset():
     category_to_label = {cat: i for i, cat in enumerate(target_categories)}
     
     # メタデータを読み込み
-    meta_df = pd.read_csv('ESC-50/meta/esc50.csv')
+    meta_df = pd.read_csv('../ESC-50/meta/esc50.csv')
     
     # 対象カテゴリのファイルを抽出
     target_files = meta_df[meta_df['category'].isin(target_categories)]
@@ -163,7 +163,7 @@ def create_dataset():
     print(f"対象ファイル: {len(target_files)}個")
     
     # ディレクトリ構造を作成
-    base_dir = "training/dataset"
+    base_dir = "dataset"
     os.makedirs(base_dir, exist_ok=True)
     
     for i in range(len(target_categories)):
@@ -188,7 +188,7 @@ def create_dataset():
     for _, row in tqdm(target_files.iterrows(), total=len(target_files)):
         filename = row['filename']
         category = row['category']
-        audio_path = os.path.join('ESC-50/audio', filename)
+        audio_path = os.path.join('../ESC-50/audio', filename)
         
         # 音声データを処理
         audio_data = find_loudest_segment(audio_path)
@@ -232,7 +232,7 @@ def create_dataset():
         label_files = processed_files_by_category[category]
         if label_files:
             selected_file = random.choice(label_files)
-            silent_audio_path = os.path.join('ESC-50/audio', selected_file)
+            silent_audio_path = os.path.join('../ESC-50/audio', selected_file)
             
             # 最も音が小さい部分からデータを抽出
             silent_data = find_quietest_segment(silent_audio_path)

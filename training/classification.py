@@ -36,7 +36,7 @@ category_names = [
 
 def load_audio_csv(file_path, normalize=True):
     """
-    CSVファイルから音声データを読み込む関数。
+    CSVファイルから音声データを読み込む関数（改良版）
     
     Args:
         file_path (str): 読み込むCSVファイルのパス。
@@ -48,9 +48,19 @@ def load_audio_csv(file_path, normalize=True):
     try:
         df = pd.read_csv(file_path, header=None)
         data = df.values.flatten()[:input_size]
+        
         if normalize:
             # 0-4095の値を-1~1に正規化
             data = (data - 2047.5) / 2047.5
+            
+            # 追加の前処理: 標準化
+            data_mean = np.mean(data)
+            data_std = np.std(data)
+            if data_std > 0:
+                data = (data - data_mean) / data_std
+                # 範囲を[-1, 1]に制限
+                data = np.clip(data, -3, 3) / 3.0
+        
         return data
     except Exception as e:
         print(f"Error reading file {file_path}: {e}")
@@ -141,60 +151,102 @@ def categorical_error(pred, label):
 
 def augmentation(h, test, aug):
     """
-    音声データの拡張処理を実施する関数。
+    シンプルな音声データ拡張処理
     """
     if aug is None:
         aug = not test
     if aug:
-        # ランダムな音量スケーリング（0.2〜1.0倍）
+        # ランダムな音量スケーリング（0.8〜1.2倍）
         batch_size = h.shape[0]
-        scale_factors = np.random.uniform(0.2, 1.0, size=(batch_size, 1, 1, 1)).astype(np.float32)
+        scale_factors = np.random.uniform(0.8, 1.2, size=(batch_size, 1, 1, 1)).astype(np.float32)
         scale = nn.Variable(scale_factors.shape, need_grad=False)
         scale.d = scale_factors
         h = h * scale
         
-        # ガウスノイズの追加（平均0、標準偏差0.005）
-        noise = F.randn(h.shape, 0, 0.005)
+        # 軽いガウスノイズの追加（平均0、標準偏差0.005）
+        noise = F.randn(shape=h.shape, mu=0, sigma=0.005)
         h = h + noise
     return h
 
 
 def audio_conv1d_prediction(x_in, test=False, aug=None):
     """
-    34クラス分類用のCNNモデル
+    34クラス分類用の最適化CNNモデル（ResNet風のスキップ接続付き）
     """
     # データ拡張
-    h = augmentation(x_in, test, aug)
+    h = augmentation(x_in, test, aug) if aug and not test else x_in
     
-    # 1層目: 畳み込み → ReLU → MaxPooling
-    #h = PF.batch_normalization(x_in, name='bn1')
-    #h = PF.convolution(h, 3, (3, 1), name='conv1d_1')
-    c1 = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
+    # 1層目: 畳み込み → BatchNorm → ReLU
+    c1 = PF.convolution(h, 64, (15, 1), pad=(7, 0), name='conv1d_1')
+    c1 = PF.batch_normalization(c1, batch_stat=not test, name='bn1')
     c1 = F.relu(c1)
-    c1 = F.max_pooling(c1, (2, 1))
+    c1_pool = F.max_pooling(c1, (2, 1))
     
-    # 2層目: 畳み込み → ReLU → MaxPooling
-    #h = PF.batch_normalization(h, name='bn2')
-    c2 = PF.convolution(c1, 6, (3, 1), name='conv1d_2')
+    # 2層目: 畳み込み → BatchNorm → ReLU + Residual
+    c2 = PF.convolution(c1_pool, 64, (11, 1), pad=(5, 0), name='conv1d_2a')
+    c2 = PF.batch_normalization(c2, batch_stat=not test, name='bn2a')
     c2 = F.relu(c2)
-    c2 = F.max_pooling(c2, (2, 1))
+    c2 = PF.convolution(c2, 64, (11, 1), pad=(5, 0), name='conv1d_2b')
+    c2 = PF.batch_normalization(c2, batch_stat=not test, name='bn2b')
+    c2 = F.relu(c2 + c1_pool)  # スキップ接続
+    c2_pool = F.max_pooling(c2, (2, 1))
+    c2_pool = F.dropout(c2_pool, p=0.1 if not test else 0.0)
     
-    # 3層目: 畳み込み → ReLU
-    #h = PF.batch_normalization(h, name='bn3')
-    c3 = PF.convolution(c2, 12, (3, 1), name='conv1d_3')
+    # 3層目: チャネル数増加 + Residual
+    c3_proj = PF.convolution(c2_pool, 128, (1, 1), name='conv1d_3_proj')  # チャネル調整
+    c3 = PF.convolution(c2_pool, 128, (9, 1), pad=(4, 0), name='conv1d_3a')
+    c3 = PF.batch_normalization(c3, batch_stat=not test, name='bn3a')
     c3 = F.relu(c3)
+    c3 = PF.convolution(c3, 128, (9, 1), pad=(4, 0), name='conv1d_3b')
+    c3 = PF.batch_normalization(c3, batch_stat=not test, name='bn3b')
+    c3 = F.relu(c3 + c3_proj)  # スキップ接続
+    c3_pool = F.max_pooling(c3, (2, 1))
+    c3_pool = F.dropout(c3_pool, p=0.2 if not test else 0.0)
     
-    # 全結合層（24ユニット, ReLU活性化）
-    #h = PF.batch_normalization(h, name='bn4')
-    c4 = PF.affine(c3, 24, name='fc1')
+    # 4層目: チャネル数増加 + Residual
+    c4_proj = PF.convolution(c3_pool, 256, (1, 1), name='conv1d_4_proj')
+    c4 = PF.convolution(c3_pool, 256, (7, 1), pad=(3, 0), name='conv1d_4a')
+    c4 = PF.batch_normalization(c4, batch_stat=not test, name='bn4a')
     c4 = F.relu(c4)
+    c4 = PF.convolution(c4, 256, (7, 1), pad=(3, 0), name='conv1d_4b')
+    c4 = PF.batch_normalization(c4, batch_stat=not test, name='bn4b')
+    c4 = F.relu(c4 + c4_proj)
+    c4_pool = F.max_pooling(c4, (2, 1))
+    c4_pool = F.dropout(c4_pool, p=0.3 if not test else 0.0)
     
-    # 出力層（2クラス分類: 全結合層）
-    #h = PF.batch_normalization(h, name='bn5')
-    c5 = PF.affine(c4, 2, name='fc2')
-    # F.softmax_cross_entropy は内部で softmax を計算するため、既に softmax 済みの出力を渡すと正しい損失が計算されず、学習にも悪影響が出る
-    #y = F.softmax(logits)
-    return c5
+    # 5層目: 最終特徴抽出
+    c5 = PF.convolution(c4_pool, 512, (5, 1), pad=(2, 0), name='conv1d_5')
+    c5 = PF.batch_normalization(c5, batch_stat=not test, name='bn5')
+    c5 = F.relu(c5)
+    c5 = F.dropout(c5, p=0.4 if not test else 0.0)
+    
+    # Global Average Pooling + Attention機構
+    gap = F.mean(c5, axis=2, keepdims=True)
+    
+    # 簡易的なAttention
+    att_weights = PF.convolution(c5, 1, (1, 1), name='attention')
+    att_weights = F.softmax(att_weights, axis=2)
+    att_pooled = F.sum(c5 * att_weights, axis=2, keepdims=True)
+    
+    # GAP + Attention のコンバイン
+    combined = F.concatenate(gap, att_pooled, axis=1)
+    combined = F.reshape(combined, (combined.shape[0], -1))
+    
+    # 分類層
+    fc1 = PF.affine(combined, 512, name='fc1')
+    fc1 = PF.batch_normalization(fc1, batch_stat=not test, name='bn_fc1')
+    fc1 = F.relu(fc1)
+    fc1 = F.dropout(fc1, p=0.5 if not test else 0.0)
+    
+    fc2 = PF.affine(fc1, 256, name='fc2')
+    fc2 = PF.batch_normalization(fc2, batch_stat=not test, name='bn_fc2')
+    fc2 = F.relu(fc2)
+    fc2 = F.dropout(fc2, p=0.5 if not test else 0.0)
+    
+    # 出力層
+    output = PF.affine(fc2, num_classes, name='fc_output')
+    
+    return output
 
 def train():
     # 実行時に新規ログファイルを作成するための処理
@@ -253,7 +305,19 @@ def train():
     if args.checkpoint is not None:
         start_point = load_checkpoint(args.checkpoint, solver)
 
-    print(f"Current learning rate: {solver.learning_rate()}")
+    print(f"Initial learning rate: {solver.learning_rate()}")
+    
+    # 学習率スケジューリング
+    def update_learning_rate(iteration, initial_lr):
+        """学習率を段階的に調整"""
+        if iteration < 1000:
+            return initial_lr
+        elif iteration < 3000:
+            return initial_lr * 0.5
+        elif iteration < 6000:
+            return initial_lr * 0.2
+        else:
+            return initial_lr * 0.1
 
     from nnabla.monitor import Monitor, MonitorSeries, MonitorTimeElapsed
     monitor = Monitor(args.monitor_path)
@@ -271,7 +335,14 @@ def train():
     val_data = iter(data_iterator_audio(args.batch_size, False))
     
     # Training loop.
+    initial_lr = args.learning_rate
     for i in range(start_point, args.max_iter):
+        # 学習率の動的調整
+        new_lr = update_learning_rate(i, initial_lr)
+        if abs(solver.learning_rate() - new_lr) > 1e-8:
+            solver.set_learning_rate(new_lr)
+            print(f"Learning rate updated to: {new_lr} at iteration {i}")
+        
         if i % args.val_interval == 0:
             ve = 0.0
             va = 0.0
