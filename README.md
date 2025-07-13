@@ -2,6 +2,9 @@
 ## training
 trainingディレクトリで実行する
 
+### データセットを作成する
+python3 create_dataset.py
+
 ### 学習データを抽出する
 ``` bash 
 python3 abstract_csv.py
