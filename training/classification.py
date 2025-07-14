@@ -23,6 +23,16 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classifica
 input_size = 2000
 num_classes = 34  # label0-33の34クラス
 
+# 実際のクラス数を検証する
+def verify_num_classes():
+    """実際のデータセットのクラス数を検証"""
+    import glob
+    actual_classes = len(glob.glob("dataset/label*"))
+    if actual_classes != num_classes:
+        print(f"警告: 定義されたクラス数({num_classes})と実際のクラス数({actual_classes})が一致しません")
+        return actual_classes
+    return num_classes
+
 # カテゴリ名の定義
 category_names = [
     'dog', 'cat', 'rain', 'sea_waves', 'crackling_fire', 'crickets', 
@@ -249,6 +259,15 @@ def audio_conv1d_prediction(x_in, test=False, aug=None):
     return output
 
 def train():
+    # 実際のクラス数を検証
+    global num_classes
+    verified_classes = verify_num_classes()
+    if verified_classes != num_classes:
+        print(f"クラス数を{num_classes}から{verified_classes}に調整します")
+        num_classes = verified_classes
+    
+    print(f"訓練開始: {num_classes}クラス分類")
+    
     # 実行時に新規ログファイルを作成するための処理
     log_dir = "log"
     if not os.path.exists(log_dir):
@@ -410,11 +429,11 @@ def train():
 
     contents = save_nnp({'x': vaudio}, {'y': vpred}, args.batch_size)
     save.save(os.path.join(args.model_save_path, '{}_result.nnp'.format(args.net)), contents)    
-    plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
-    plot_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
+    #plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
+    #plt_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
     
     # 個別のサンプルに対する確率を表示
-    validate_specific_samples(parameter_file)
+    #validate_specific_samples(parameter_file)
 
 def validate_specific_samples(model_path, num_samples=5):
     """

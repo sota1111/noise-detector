@@ -5,6 +5,17 @@
 #include "Validation/Validation_inference.h"
 #include "Validation/Validation_parameters.h"
 
+// ESC-50の34クラス名定義
+const char* ESC50_CLASS_NAMES[34] = {
+    "dog", "cat", "rain", "sea_waves", "crackling_fire", "crickets", 
+    "wind", "water_drops", "thunderstorm", "crying_baby", "sneezing", 
+    "clapping", "breathing", "coughing", "footsteps", "laughing", 
+    "brushing_teeth", "snoring", "door_wood_knock", "mouse_click", 
+    "keyboard_typing", "can_opening", "washing_machine", "vacuum_cleaner", 
+    "toilet_flush", "clock_alarm", "clock_tick", "glass_breaking", 
+    "door_wood_creaks", "siren", "car_horn", "engine", "train", "silent"
+};
+
 NeuralNetwork neuralNetwork;
 hw_timer_t *timer_nn = NULL;
 void *_context = NULL;
@@ -304,13 +315,12 @@ void NeuralNetwork::processAudio() {
             // デシベル値を表示
             M5.Lcd.printf("dB: %d\n", maxDbValue);
             
-            // クラス名を表示
-            M5.Lcd.setTextSize(FONT_SIZE_LARGE);
+            // クラス名を表示（ESC-50の34クラス対応）
+            M5.Lcd.setTextSize(2);
             M5.Lcd.setCursor(0, 160);
-            if (soundClass == 0) {
-                M5.Lcd.println("VOICE");
-            } else if (soundClass == 1) {
-                M5.Lcd.println("CLAP");
+            
+            if (soundClass >= 0 && soundClass < 34) {
+                M5.Lcd.println(ESC50_CLASS_NAMES[soundClass]);
             } else {
                 M5.Lcd.println("UNKNOWN");
             }
@@ -325,11 +335,10 @@ void NeuralNetwork::processAudio() {
         Serial.print("DB_VALUE:");
         Serial.println(maxDbValue);
         
-        // クラス名もシリアル送信
-        if (soundClass == 0) {
-            Serial.println("CLASS_NAME:VOICE");
-        } else if (soundClass == 1) {
-            Serial.println("CLASS_NAME:CLAP");
+        // クラス名もシリアル送信（ESC-50の34クラス対応）
+        if (soundClass >= 0 && soundClass < 34) {
+            Serial.print("CLASS_NAME:");
+            Serial.println(ESC50_CLASS_NAMES[soundClass]);
         } else {
             Serial.println("CLASS_NAME:UNKNOWN");
         }
