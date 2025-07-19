@@ -7,3 +7,4 @@ training/log/*
 tmp.monitor/*
 inference/src/config/secret.h
 .gitignore
+*.pyc

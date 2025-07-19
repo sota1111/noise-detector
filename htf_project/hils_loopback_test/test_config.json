@@ -1,0 +1,22 @@
+{
+  "device": {
+    "input_range": 5.0,
+    "output_range": 5.0
+  },
+  "tests": {
+    "sine_wave": {
+      "output_frequency": 1000.0,
+      "output_amplitude": 1.0,
+      "sample_rate": 10000.0,
+      "buffer_size": 1000,
+      "duration": 1.0
+    },
+    "loopback": {
+      "frequencies": [100, 500, 1000, 2000],
+      "amplitude": 1.0,
+      "sample_rate": 20000.0,
+      "buffer_size": 2000,
+      "settling_time": 0.1
+    }
+  }
+}
