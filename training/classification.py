@@ -181,34 +181,30 @@ def augmentation(h, test, aug):
 
 def audio_conv1d_prediction(x_in, test=False, aug=None):
     """
-    34クラス分類用のCNNモデル
+    34クラス分類用のCNNモデル（M5Stack安定動作版）
     """
     # データ拡張
     h = augmentation(x_in, test, aug)
     
     # 1層目: 畳み込み → ReLU → MaxPooling
-    c1 = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
+    c1 = PF.convolution(x_in, 4, (3, 1), name='conv1d_1')
     c1 = F.relu(c1)
     c1 = F.max_pooling(c1, (2, 1))
     
     # 2層目: 畳み込み → ReLU → MaxPooling
-    c2 = PF.convolution(c1, 6, (3, 1), name='conv1d_2')
+    c2 = PF.convolution(c1, 8, (3, 1), name='conv1d_2')
     c2 = F.relu(c2)
     c2 = F.max_pooling(c2, (2, 1))
     
-    # 3層目: 畳み込み → ReLU
-    c3 = PF.convolution(c2, 12, (3, 1), name='conv1d_3')
+    # 全結合層（中間層）
+    c3 = PF.affine(c2, 16, name='fc1')
     c3 = F.relu(c3)
     
-    # 全結合層（24ユニット, ReLU活性化）
-    c4 = PF.affine(c3, 24, name='fc1')
-    c4 = F.relu(c4)
-    
     # 出力層（34クラス分類: 全結合層）
-    c5 = PF.affine(c4, num_classes, name='fc2')
+    c4 = PF.affine(c3, num_classes, name='fc2')
     # F.softmax_cross_entropy は内部で softmax を計算するため、既に softmax 済みの出力を渡すと正しい損失が計算されず、学習にも悪影響が出る
     #y = F.softmax(logits)
-    return c5
+    return c4
 
 
 def train():

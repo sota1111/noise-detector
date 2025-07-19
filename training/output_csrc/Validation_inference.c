@@ -24,7 +24,7 @@
 typedef struct {
     void *buffer_pool[2];
     void *param_pool[8];
-    rt_buffer_allocate_type_t variable_buffers_allocate_type[20];
+    rt_buffer_allocate_type_t variable_buffers_allocate_type[18];
 
     // Variables
     rt_variable_t v0; ///< x
@@ -41,32 +41,28 @@ typedef struct {
     int v5_shape[4];
     rt_variable_t v6; ///< @Validation/MaxPooling_out_1
     int v6_shape[4];
-    rt_variable_t v7; ///< @Validation/Mean_out
-    int v7_shape[4];
-    rt_variable_t v8; ///< @Validation/Reshape_out
+    rt_variable_t v7; ///< @Validation/Affine_out
+    int v7_shape[2];
+    rt_variable_t v8; ///< @Validation/ReLU_out_2
     int v8_shape[2];
-    rt_variable_t v9; ///< @Validation/Affine_out
+    rt_variable_t v9; ///< y
     int v9_shape[2];
-    rt_variable_t v10; ///< @Validation/ReLU_out_2
-    int v10_shape[2];
-    rt_variable_t v11; ///< y
-    int v11_shape[2];
-    rt_variable_t v12; ///< conv1d_1/conv/W
+    rt_variable_t v10; ///< conv1d_1/conv/W
+    int v10_shape[4];
+    rt_variable_t v11; ///< conv1d_1/conv/b
+    int v11_shape[1];
+    rt_variable_t v12; ///< conv1d_2/conv/W
     int v12_shape[4];
-    rt_variable_t v13; ///< conv1d_1/conv/b
+    rt_variable_t v13; ///< conv1d_2/conv/b
     int v13_shape[1];
-    rt_variable_t v14; ///< conv1d_2/conv/W
-    int v14_shape[4];
-    rt_variable_t v15; ///< conv1d_2/conv/b
+    rt_variable_t v14; ///< fc1/affine/W
+    int v14_shape[2];
+    rt_variable_t v15; ///< fc1/affine/b
     int v15_shape[1];
-    rt_variable_t v16; ///< fc1/affine/W
+    rt_variable_t v16; ///< fc2/affine/W
     int v16_shape[2];
-    rt_variable_t v17; ///< fc1/affine/b
+    rt_variable_t v17; ///< fc2/affine/b
     int v17_shape[1];
-    rt_variable_t v18; ///< fc_output/affine/W
-    int v18_shape[2];
-    rt_variable_t v19; ///< fc_output/affine/b
-    int v19_shape[1];
 
     // Functions
     rt_function_t f0; ///< Convolution
@@ -105,33 +101,23 @@ typedef struct {
     int f5_local_context_shape_kernel[2];
     int f5_local_context_shape_stride[2];
     int f5_local_context_shape_pad[2];
-    rt_function_t f6; ///< Mean
-    rt_variable_t* f6_inputs[1];
+    rt_function_t f6; ///< Affine
+    rt_variable_t* f6_inputs[3];
     rt_variable_t* f6_outputs[1];
-    mean_local_context_t *f6_local_context;
-    int f6_local_context_shape_axes[1];
-    rt_function_t f7; ///< Reshape
+    affine_local_context_t *f6_local_context;
+    rt_function_t f7; ///< ReLU
     rt_variable_t* f7_inputs[1];
     rt_variable_t* f7_outputs[1];
-    reshape_local_context_t *f7_local_context;
-    int f7_local_context_shape_shape[2];
+    relu_local_context_t *f7_local_context;
     rt_function_t f8; ///< Affine
     rt_variable_t* f8_inputs[3];
     rt_variable_t* f8_outputs[1];
     affine_local_context_t *f8_local_context;
-    rt_function_t f9; ///< ReLU
-    rt_variable_t* f9_inputs[1];
-    rt_variable_t* f9_outputs[1];
-    relu_local_context_t *f9_local_context;
-    rt_function_t f10; ///< Affine
-    rt_variable_t* f10_inputs[3];
-    rt_variable_t* f10_outputs[1];
-    affine_local_context_t *f10_local_context;
 } nnablart_validation_local_context_t;
 
 int actual_buf_sizes[2] = {
-    16000,
-    16000,
+    7992,
+    7992,
 };
 
 // void *(*rt_variable_malloc_func)(size_t size) = malloc;
@@ -150,45 +136,45 @@ void* nnablart_validation_allocate_context(void** params)
         memset(c->buffer_pool[i], 0, sizeof(float) * actual_buf_sizes[i]);
     }
     if(params) {
-        c->variable_buffers_allocate_type[12] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[10] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[0] = *params++;
-        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[11] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[1] = *params++;
-        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[12] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[2] = *params++;
-        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[3] = *params++;
-        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[4] = *params++;
-        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[5] = *params++;
-        c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[6] = *params++;
-        c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
+        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_ALLOCATED;
         c->param_pool[7] = *params++;
     } else {
-        c->variable_buffers_allocate_type[12] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->variable_buffers_allocate_type[10] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[0] = *params++;
-        c->param_pool[0] = malloc(sizeof(float) * 120);
-        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[0] = malloc(sizeof(float) * 12);
+        c->variable_buffers_allocate_type[11] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[1] = *params++;
-        c->param_pool[1] = malloc(sizeof(float) * 8);
-        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[1] = malloc(sizeof(float) * 4);
+        c->variable_buffers_allocate_type[12] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[2] = *params++;
-        c->param_pool[2] = malloc(sizeof(float) * 1408);
-        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[2] = malloc(sizeof(float) * 96);
+        c->variable_buffers_allocate_type[13] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[3] = *params++;
-        c->param_pool[3] = malloc(sizeof(float) * 16);
-        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[3] = malloc(sizeof(float) * 8);
+        c->variable_buffers_allocate_type[14] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[4] = *params++;
-        c->param_pool[4] = malloc(sizeof(float) * 1024);
-        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[4] = malloc(sizeof(float) * 63744);
+        c->variable_buffers_allocate_type[15] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[5] = *params++;
-        c->param_pool[5] = malloc(sizeof(float) * 64);
-        c->variable_buffers_allocate_type[18] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[5] = malloc(sizeof(float) * 16);
+        c->variable_buffers_allocate_type[16] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[6] = *params++;
-        c->param_pool[6] = malloc(sizeof(float) * 2176);
-        c->variable_buffers_allocate_type[19] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
+        c->param_pool[6] = malloc(sizeof(float) * 544);
+        c->variable_buffers_allocate_type[17] = RT_BUFFER_ALLOCATE_TYPE_MALLOC;
         c->param_pool[7] = *params++;
         c->param_pool[7] = malloc(sizeof(float) * 34);
     }
@@ -207,8 +193,8 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v1).type = NN_DATA_TYPE_FLOAT;
     (c->v1).shape.size = 4;
     c->v1_shape[0] = 1;
-    c->v1_shape[1] = 8;
-    c->v1_shape[2] = 2000;
+    c->v1_shape[1] = 4;
+    c->v1_shape[2] = 1998;
     c->v1_shape[3] = 1;
     (c->v1).shape.data = c->v1_shape;
     (c->v1).data = c->buffer_pool[1];
@@ -216,8 +202,8 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v2).type = NN_DATA_TYPE_FLOAT;
     (c->v2).shape.size = 4;
     c->v2_shape[0] = 1;
-    c->v2_shape[1] = 8;
-    c->v2_shape[2] = 2000;
+    c->v2_shape[1] = 4;
+    c->v2_shape[2] = 1998;
     c->v2_shape[3] = 1;
     (c->v2).shape.data = c->v2_shape;
     (c->v2).data = c->buffer_pool[0];
@@ -225,8 +211,8 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v3).type = NN_DATA_TYPE_FLOAT;
     (c->v3).shape.size = 4;
     c->v3_shape[0] = 1;
-    c->v3_shape[1] = 8;
-    c->v3_shape[2] = 250;
+    c->v3_shape[1] = 4;
+    c->v3_shape[2] = 999;
     c->v3_shape[3] = 1;
     (c->v3).shape.data = c->v3_shape;
     (c->v3).data = c->buffer_pool[1];
@@ -234,8 +220,8 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v4).type = NN_DATA_TYPE_FLOAT;
     (c->v4).shape.size = 4;
     c->v4_shape[0] = 1;
-    c->v4_shape[1] = 16;
-    c->v4_shape[2] = 250;
+    c->v4_shape[1] = 8;
+    c->v4_shape[2] = 997;
     c->v4_shape[3] = 1;
     (c->v4).shape.data = c->v4_shape;
     (c->v4).data = c->buffer_pool[0];
@@ -243,8 +229,8 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v5).type = NN_DATA_TYPE_FLOAT;
     (c->v5).shape.size = 4;
     c->v5_shape[0] = 1;
-    c->v5_shape[1] = 16;
-    c->v5_shape[2] = 250;
+    c->v5_shape[1] = 8;
+    c->v5_shape[2] = 997;
     c->v5_shape[3] = 1;
     (c->v5).shape.data = c->v5_shape;
     (c->v5).data = c->buffer_pool[1];
@@ -252,112 +238,96 @@ void* nnablart_validation_allocate_context(void** params)
     (c->v6).type = NN_DATA_TYPE_FLOAT;
     (c->v6).shape.size = 4;
     c->v6_shape[0] = 1;
-    c->v6_shape[1] = 16;
-    c->v6_shape[2] = 31;
+    c->v6_shape[1] = 8;
+    c->v6_shape[2] = 498;
     c->v6_shape[3] = 1;
     (c->v6).shape.data = c->v6_shape;
     (c->v6).data = c->buffer_pool[0];
-    // @Validation/Mean_out
+    // @Validation/Affine_out
     (c->v7).type = NN_DATA_TYPE_FLOAT;
-    (c->v7).shape.size = 4;
+    (c->v7).shape.size = 2;
     c->v7_shape[0] = 1;
     c->v7_shape[1] = 16;
-    c->v7_shape[2] = 1;
-    c->v7_shape[3] = 1;
     (c->v7).shape.data = c->v7_shape;
     (c->v7).data = c->buffer_pool[1];
-    // @Validation/Reshape_out
+    // @Validation/ReLU_out_2
     (c->v8).type = NN_DATA_TYPE_FLOAT;
     (c->v8).shape.size = 2;
     c->v8_shape[0] = 1;
     c->v8_shape[1] = 16;
     (c->v8).shape.data = c->v8_shape;
     (c->v8).data = c->buffer_pool[0];
-    // @Validation/Affine_out
+    // y
     (c->v9).type = NN_DATA_TYPE_FLOAT;
     (c->v9).shape.size = 2;
     c->v9_shape[0] = 1;
-    c->v9_shape[1] = 64;
+    c->v9_shape[1] = 34;
     (c->v9).shape.data = c->v9_shape;
     (c->v9).data = c->buffer_pool[1];
-    // @Validation/ReLU_out_2
-    (c->v10).type = NN_DATA_TYPE_FLOAT;
-    (c->v10).shape.size = 2;
-    c->v10_shape[0] = 1;
-    c->v10_shape[1] = 64;
-    (c->v10).shape.data = c->v10_shape;
-    (c->v10).data = c->buffer_pool[0];
-    // y
-    (c->v11).type = NN_DATA_TYPE_FLOAT;
-    (c->v11).shape.size = 2;
-    c->v11_shape[0] = 1;
-    c->v11_shape[1] = 34;
-    (c->v11).shape.data = c->v11_shape;
-    (c->v11).data = c->buffer_pool[1];
     // conv1d_1/conv/W
+    (c->v10).type = NN_DATA_TYPE_FLOAT;
+    (c->v10).shape.size = 4;
+    c->v10_shape[0] = 4;
+    c->v10_shape[1] = 1;
+    c->v10_shape[2] = 3;
+    c->v10_shape[3] = 1;
+    (c->v10).shape.data = c->v10_shape;
+    (c->v10).data = c->param_pool[0];
+    // conv1d_1/conv/b
+    (c->v11).type = NN_DATA_TYPE_FLOAT;
+    (c->v11).shape.size = 1;
+    c->v11_shape[0] = 4;
+    (c->v11).shape.data = c->v11_shape;
+    (c->v11).data = c->param_pool[1];
+    // conv1d_2/conv/W
     (c->v12).type = NN_DATA_TYPE_FLOAT;
     (c->v12).shape.size = 4;
     c->v12_shape[0] = 8;
-    c->v12_shape[1] = 1;
-    c->v12_shape[2] = 15;
+    c->v12_shape[1] = 4;
+    c->v12_shape[2] = 3;
     c->v12_shape[3] = 1;
     (c->v12).shape.data = c->v12_shape;
-    (c->v12).data = c->param_pool[0];
-    // conv1d_1/conv/b
+    (c->v12).data = c->param_pool[2];
+    // conv1d_2/conv/b
     (c->v13).type = NN_DATA_TYPE_FLOAT;
     (c->v13).shape.size = 1;
     c->v13_shape[0] = 8;
     (c->v13).shape.data = c->v13_shape;
-    (c->v13).data = c->param_pool[1];
-    // conv1d_2/conv/W
+    (c->v13).data = c->param_pool[3];
+    // fc1/affine/W
     (c->v14).type = NN_DATA_TYPE_FLOAT;
-    (c->v14).shape.size = 4;
-    c->v14_shape[0] = 16;
-    c->v14_shape[1] = 8;
-    c->v14_shape[2] = 11;
-    c->v14_shape[3] = 1;
+    (c->v14).shape.size = 2;
+    c->v14_shape[0] = 3984;
+    c->v14_shape[1] = 16;
     (c->v14).shape.data = c->v14_shape;
-    (c->v14).data = c->param_pool[2];
-    // conv1d_2/conv/b
+    (c->v14).data = c->param_pool[4];
+    // fc1/affine/b
     (c->v15).type = NN_DATA_TYPE_FLOAT;
     (c->v15).shape.size = 1;
     c->v15_shape[0] = 16;
     (c->v15).shape.data = c->v15_shape;
-    (c->v15).data = c->param_pool[3];
-    // fc1/affine/W
+    (c->v15).data = c->param_pool[5];
+    // fc2/affine/W
     (c->v16).type = NN_DATA_TYPE_FLOAT;
     (c->v16).shape.size = 2;
     c->v16_shape[0] = 16;
-    c->v16_shape[1] = 64;
+    c->v16_shape[1] = 34;
     (c->v16).shape.data = c->v16_shape;
-    (c->v16).data = c->param_pool[4];
-    // fc1/affine/b
+    (c->v16).data = c->param_pool[6];
+    // fc2/affine/b
     (c->v17).type = NN_DATA_TYPE_FLOAT;
     (c->v17).shape.size = 1;
-    c->v17_shape[0] = 64;
+    c->v17_shape[0] = 34;
     (c->v17).shape.data = c->v17_shape;
-    (c->v17).data = c->param_pool[5];
-    // fc_output/affine/W
-    (c->v18).type = NN_DATA_TYPE_FLOAT;
-    (c->v18).shape.size = 2;
-    c->v18_shape[0] = 64;
-    c->v18_shape[1] = 34;
-    (c->v18).shape.data = c->v18_shape;
-    (c->v18).data = c->param_pool[6];
-    // fc_output/affine/b
-    (c->v19).type = NN_DATA_TYPE_FLOAT;
-    (c->v19).shape.size = 1;
-    c->v19_shape[0] = 34;
-    (c->v19).shape.data = c->v19_shape;
-    (c->v19).data = c->param_pool[7];
+    (c->v17).data = c->param_pool[7];
 
     // Functions
     // Convolution
     c->f0_local_context = malloc(sizeof(convolution_local_context_t));
     (c->f0).num_of_inputs = 3;
     (c->f0_inputs)[0] = &(c->v0);
-    (c->f0_inputs)[1] = &(c->v12);
-    (c->f0_inputs)[2] = &(c->v13);
+    (c->f0_inputs)[1] = &(c->v10);
+    (c->f0_inputs)[2] = &(c->v11);
     (c->f0).inputs = c->f0_inputs;
     (c->f0).num_of_outputs = 1;
     (c->f0_outputs)[0] = &(c->v1);
@@ -367,7 +337,7 @@ void* nnablart_validation_allocate_context(void** params)
     rt_list_t arg_f0_pad;
     arg_f0_pad.size = 2;
     arg_f0_pad.data = c->f0_local_context_shape_pad;
-    arg_f0_pad.data[0] = 7;
+    arg_f0_pad.data[0] = 0;
     arg_f0_pad.data[1] = 0;
     (c->f0_local_context)->pad = arg_f0_pad;
     rt_list_t arg_f0_stride;
@@ -408,13 +378,13 @@ void* nnablart_validation_allocate_context(void** params)
     rt_list_t arg_f2_kernel;
     arg_f2_kernel.size = 2;
     arg_f2_kernel.data = c->f2_local_context_shape_kernel;
-    arg_f2_kernel.data[0] = 8;
+    arg_f2_kernel.data[0] = 2;
     arg_f2_kernel.data[1] = 1;
     (c->f2_local_context)->kernel = arg_f2_kernel;
     rt_list_t arg_f2_stride;
     arg_f2_stride.size = 2;
     arg_f2_stride.data = c->f2_local_context_shape_stride;
-    arg_f2_stride.data[0] = 8;
+    arg_f2_stride.data[0] = 2;
     arg_f2_stride.data[1] = 1;
     (c->f2_local_context)->stride = arg_f2_stride;
     (c->f2_local_context)->ignore_border = 1;
@@ -430,8 +400,8 @@ void* nnablart_validation_allocate_context(void** params)
     c->f3_local_context = malloc(sizeof(convolution_local_context_t));
     (c->f3).num_of_inputs = 3;
     (c->f3_inputs)[0] = &(c->v3);
-    (c->f3_inputs)[1] = &(c->v14);
-    (c->f3_inputs)[2] = &(c->v15);
+    (c->f3_inputs)[1] = &(c->v12);
+    (c->f3_inputs)[2] = &(c->v13);
     (c->f3).inputs = c->f3_inputs;
     (c->f3).num_of_outputs = 1;
     (c->f3_outputs)[0] = &(c->v4);
@@ -441,7 +411,7 @@ void* nnablart_validation_allocate_context(void** params)
     rt_list_t arg_f3_pad;
     arg_f3_pad.size = 2;
     arg_f3_pad.data = c->f3_local_context_shape_pad;
-    arg_f3_pad.data[0] = 5;
+    arg_f3_pad.data[0] = 0;
     arg_f3_pad.data[1] = 0;
     (c->f3_local_context)->pad = arg_f3_pad;
     rt_list_t arg_f3_stride;
@@ -482,13 +452,13 @@ void* nnablart_validation_allocate_context(void** params)
     rt_list_t arg_f5_kernel;
     arg_f5_kernel.size = 2;
     arg_f5_kernel.data = c->f5_local_context_shape_kernel;
-    arg_f5_kernel.data[0] = 8;
+    arg_f5_kernel.data[0] = 2;
     arg_f5_kernel.data[1] = 1;
     (c->f5_local_context)->kernel = arg_f5_kernel;
     rt_list_t arg_f5_stride;
     arg_f5_stride.size = 2;
     arg_f5_stride.data = c->f5_local_context_shape_stride;
-    arg_f5_stride.data[0] = 8;
+    arg_f5_stride.data[0] = 2;
     arg_f5_stride.data[1] = 1;
     (c->f5_local_context)->stride = arg_f5_stride;
     (c->f5_local_context)->ignore_border = 1;
@@ -500,24 +470,21 @@ void* nnablart_validation_allocate_context(void** params)
     (c->f5_local_context)->pad = arg_f5_pad;
     (c->f5_local_context)->channel_last = 0;
     allocate_max_pooling_local_context(&(c->f5));
-    // Mean
-    c->f6_local_context = malloc(sizeof(mean_local_context_t));
-    (c->f6).num_of_inputs = 1;
+    // Affine
+    c->f6_local_context = malloc(sizeof(affine_local_context_t));
+    (c->f6).num_of_inputs = 3;
     (c->f6_inputs)[0] = &(c->v6);
+    (c->f6_inputs)[1] = &(c->v14);
+    (c->f6_inputs)[2] = &(c->v15);
     (c->f6).inputs = c->f6_inputs;
     (c->f6).num_of_outputs = 1;
     (c->f6_outputs)[0] = &(c->v7);
     (c->f6).outputs = c->f6_outputs;
     (c->f6).local_context = c->f6_local_context;
-    rt_list_t arg_f6_axes;
-    arg_f6_axes.size = 1;
-    arg_f6_axes.data = c->f6_local_context_shape_axes;
-    arg_f6_axes.data[0] = 2;
-    (c->f6_local_context)->axes = arg_f6_axes;
-    (c->f6_local_context)->keep_dims = 1;
-    allocate_mean_local_context(&(c->f6));
-    // Reshape
-    c->f7_local_context = malloc(sizeof(reshape_local_context_t));
+    (c->f6_local_context)->base_axis = 1;
+    allocate_affine_local_context(&(c->f6));
+    // ReLU
+    c->f7_local_context = malloc(sizeof(relu_local_context_t));
     (c->f7).num_of_inputs = 1;
     (c->f7_inputs)[0] = &(c->v7);
     (c->f7).inputs = c->f7_inputs;
@@ -525,14 +492,8 @@ void* nnablart_validation_allocate_context(void** params)
     (c->f7_outputs)[0] = &(c->v8);
     (c->f7).outputs = c->f7_outputs;
     (c->f7).local_context = c->f7_local_context;
-    rt_list_t arg_f7_shape;
-    arg_f7_shape.size = 2;
-    arg_f7_shape.data = c->f7_local_context_shape_shape;
-    arg_f7_shape.data[0] = -1;
-    arg_f7_shape.data[1] = 16;
-    (c->f7_local_context)->shape = arg_f7_shape;
-    (c->f7_local_context)->inplace = 1;
-    allocate_reshape_local_context(&(c->f7));
+    (c->f7_local_context)->inplace = 0;
+    allocate_relu_local_context(&(c->f7));
     // Affine
     c->f8_local_context = malloc(sizeof(affine_local_context_t));
     (c->f8).num_of_inputs = 3;
@@ -546,30 +507,6 @@ void* nnablart_validation_allocate_context(void** params)
     (c->f8).local_context = c->f8_local_context;
     (c->f8_local_context)->base_axis = 1;
     allocate_affine_local_context(&(c->f8));
-    // ReLU
-    c->f9_local_context = malloc(sizeof(relu_local_context_t));
-    (c->f9).num_of_inputs = 1;
-    (c->f9_inputs)[0] = &(c->v9);
-    (c->f9).inputs = c->f9_inputs;
-    (c->f9).num_of_outputs = 1;
-    (c->f9_outputs)[0] = &(c->v10);
-    (c->f9).outputs = c->f9_outputs;
-    (c->f9).local_context = c->f9_local_context;
-    (c->f9_local_context)->inplace = 0;
-    allocate_relu_local_context(&(c->f9));
-    // Affine
-    c->f10_local_context = malloc(sizeof(affine_local_context_t));
-    (c->f10).num_of_inputs = 3;
-    (c->f10_inputs)[0] = &(c->v10);
-    (c->f10_inputs)[1] = &(c->v18);
-    (c->f10_inputs)[2] = &(c->v19);
-    (c->f10).inputs = c->f10_inputs;
-    (c->f10).num_of_outputs = 1;
-    (c->f10_outputs)[0] = &(c->v11);
-    (c->f10).outputs = c->f10_outputs;
-    (c->f10).local_context = c->f10_local_context;
-    (c->f10_local_context)->base_axis = 1;
-    allocate_affine_local_context(&(c->f10));
     return (void*)c;
 }
 
@@ -580,28 +517,28 @@ int nnablart_validation_free_context(void* context)
     for (int i = 0; i < 2; i++) {
         free(c->buffer_pool[i]);
     }
-    if(c->variable_buffers_allocate_type[12] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[10] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[0]);
     }
-    if(c->variable_buffers_allocate_type[13] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[11] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[1]);
     }
-    if(c->variable_buffers_allocate_type[14] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[12] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[2]);
     }
-    if(c->variable_buffers_allocate_type[15] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[13] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[3]);
     }
-    if(c->variable_buffers_allocate_type[16] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[14] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[4]);
     }
-    if(c->variable_buffers_allocate_type[17] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[15] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[5]);
     }
-    if(c->variable_buffers_allocate_type[18] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[16] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[6]);
     }
-    if(c->variable_buffers_allocate_type[19] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
+    if(c->variable_buffers_allocate_type[17] == RT_BUFFER_ALLOCATE_TYPE_MALLOC) {
         free(c->param_pool[7]);
     }
     free_convolution_local_context(&(c->f0));
@@ -634,12 +571,12 @@ int nnablart_validation_free_context(void* context)
         rt_free_func(c->f5.local_context);
         c->f5.local_context = 0;
     }
-    free_mean_local_context(&(c->f6));
+    free_affine_local_context(&(c->f6));
     if (c->f6.local_context != 0) {
         rt_free_func(c->f6.local_context);
         c->f6.local_context = 0;
     }
-    free_reshape_local_context(&(c->f7));
+    free_relu_local_context(&(c->f7));
     if (c->f7.local_context != 0) {
         rt_free_func(c->f7.local_context);
         c->f7.local_context = 0;
@@ -648,16 +585,6 @@ int nnablart_validation_free_context(void* context)
     if (c->f8.local_context != 0) {
         rt_free_func(c->f8.local_context);
         c->f8.local_context = 0;
-    }
-    free_relu_local_context(&(c->f9));
-    if (c->f9.local_context != 0) {
-        rt_free_func(c->f9.local_context);
-        c->f9.local_context = 0;
-    }
-    free_affine_local_context(&(c->f10));
-    if (c->f10.local_context != 0) {
-        rt_free_func(c->f10.local_context);
-        c->f10.local_context = 0;
     }  
     free(context);
     return NN_ERROR_CODE_NOERROR;
@@ -676,7 +603,7 @@ float* nnablart_validation_output_buffer(void* context, int index)
 {
     nnablart_validation_local_context_t* c = (nnablart_validation_local_context_t*)context;
     switch(index) {
-        case 0: return (c->v11).data;
+        case 0: return (c->v9).data;
     }
 
     return 0;
@@ -685,14 +612,14 @@ float* nnablart_validation_param_buffer(void* context, int index)
 {
     nnablart_validation_local_context_t* c = (nnablart_validation_local_context_t*)context;
     switch(index) {
-        case 0: return (c->v12).data;
-        case 1: return (c->v13).data;
-        case 2: return (c->v14).data;
-        case 3: return (c->v15).data;
-        case 4: return (c->v16).data;
-        case 5: return (c->v17).data;
-        case 6: return (c->v18).data;
-        case 7: return (c->v19).data;
+        case 0: return (c->v10).data;
+        case 1: return (c->v11).data;
+        case 2: return (c->v12).data;
+        case 3: return (c->v13).data;
+        case 4: return (c->v14).data;
+        case 5: return (c->v15).data;
+        case 6: return (c->v16).data;
+        case 7: return (c->v17).data;
     }
     return 0;
 }
@@ -705,10 +632,8 @@ int nnablart_validation_inference(void* context)
     exec_convolution(&(c->f3));
     exec_relu(&(c->f4));
     exec_max_pooling(&(c->f5));
-    exec_mean(&(c->f6));
-    exec_reshape(&(c->f7));
+    exec_affine(&(c->f6));
+    exec_relu(&(c->f7));
     exec_affine(&(c->f8));
-    exec_relu(&(c->f9));
-    exec_affine(&(c->f10));
     return NN_ERROR_CODE_NOERROR;
 }
