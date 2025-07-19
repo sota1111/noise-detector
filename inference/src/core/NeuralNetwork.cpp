@@ -277,18 +277,40 @@ int NeuralNetwork::exeNeuralNetwork() {
     int top_class = 0;
     float top_probability = 0.0f;
 
-    // 詳細情報表示エリアをクリアして表示
+    // 上位5クラスを見つける
+    int top_indices[5] = {0, 1, 2, 3, 4};
+    float top_probs[5] = {probs[0], probs[1], probs[2], probs[3], probs[4]};
+    
+    // 全クラスの中から最大確率を見つける
+    for (int classNo = 0; classNo < NNABLART_VALIDATION_OUTPUT0_SIZE; classNo++) {
+      if (probs[classNo] > top_probability) {
+        top_probability = probs[classNo];
+        top_class = classNo;
+      }
+      
+      // 上位5位に入るかチェック
+      for (int i = 0; i < 5; i++) {
+        if (probs[classNo] > top_probs[i]) {
+          // より低い順位のものを後ろにシフト
+          for (int j = 4; j > i; j--) {
+            top_probs[j] = top_probs[j-1];
+            top_indices[j] = top_indices[j-1];
+          }
+          top_probs[i] = probs[classNo];
+          top_indices[i] = classNo;
+          break;
+        }
+      }
+    }
+    
+    // 詳細情報表示エリアをクリアして上位5クラスのみ表示
     M5.Lcd.fillRect(0, 40, 320, 90, TFT_BLACK);
     M5.Lcd.setCursor(0, 40);
     M5.Lcd.setTextSize(1);
     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     
-    for (int classNo = 0; classNo < NNABLART_VALIDATION_OUTPUT0_SIZE; classNo++) {
-      M5.Lcd.printf("class %d: %.3f\n", classNo, probs[classNo]);
-      if (probs[classNo] > top_probability) {
-        top_probability = probs[classNo];
-        top_class = classNo;
-      }
+    for (int i = 0; i < 5; i++) {
+      M5.Lcd.printf("%2d %-15s %.3f\n", top_indices[i], ESC50_CLASS_NAMES[top_indices[i]], top_probs[i]);
     }
 
     // 推論結果の表示
