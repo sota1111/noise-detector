@@ -16,7 +16,7 @@ python3 display_csv.py
 ### 学習
 ``` bash 
 python3 classification.py -c cudnn -n conv1d -o output --batch-size 32 --learning-rate 0.001 --max-iter 200 --val-interval 10 --val-iter 20
-python3 classification.py --batch-size 24 --learning-rate 0.01 --max-iter 10000 --val-interval 400 --val-iter 30 --weight-decay 0.0001 --n conv1d -c cudnn --augment-train --model-save-interval 2000
+python3 classification.py --batch-size 24 --learning-rate 0.01 --max-iter 1 --val-interval 400 --val-iter 30 --weight-decay 0.0001 --n conv1d -c cudnn --augment-train --model-save-interval 2000
 ```
 ### 推論コードの生成
 ``` bash 

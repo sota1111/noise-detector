@@ -178,34 +178,38 @@ def augmentation(h, test, aug):
     return h
 
 
+
 def audio_conv1d_prediction(x_in, test=False, aug=None):
     """
-    極軽量34クラス分類用CNNモデル（M5Stack対応）
+    34クラス分類用のCNNモデル
     """
-    h = x_in
+    # データ拡張
+    h = augmentation(x_in, test, aug)
     
-    # 1層目: 非常に軽量な畳み込み（チャネル数を最小に）
-    c1 = PF.convolution(h, 8, (15, 1), pad=(7, 0), name='conv1d_1')
+    # 1層目: 畳み込み → ReLU → MaxPooling
+    c1 = PF.convolution(x_in, 3, (3, 1), name='conv1d_1')
     c1 = F.relu(c1)
-    c1_pool = F.max_pooling(c1, (8, 1))  # 大きなプーリングでサイズ削減
+    c1 = F.max_pooling(c1, (2, 1))
     
-    # 2層目: 軽量畳み込み
-    c2 = PF.convolution(c1_pool, 16, (11, 1), pad=(5, 0), name='conv1d_2')
+    # 2層目: 畳み込み → ReLU → MaxPooling
+    c2 = PF.convolution(c1, 6, (3, 1), name='conv1d_2')
     c2 = F.relu(c2)
-    c2_pool = F.max_pooling(c2, (8, 1))
+    c2 = F.max_pooling(c2, (2, 1))
     
-    # Global Average Pooling（すぐに平均化）
-    gap = F.mean(c2_pool, axis=2, keepdims=True)
-    gap = F.reshape(gap, (gap.shape[0], -1))
+    # 3層目: 畳み込み → ReLU
+    c3 = PF.convolution(c2, 12, (3, 1), name='conv1d_3')
+    c3 = F.relu(c3)
     
-    # 分類層（最小構成）
-    fc1 = PF.affine(gap, 64, name='fc1')  # 小さな中間層
-    fc1 = F.relu(fc1)
+    # 全結合層（24ユニット, ReLU活性化）
+    c4 = PF.affine(c3, 24, name='fc1')
+    c4 = F.relu(c4)
     
-    # 出力層
-    output = PF.affine(fc1, num_classes, name='fc_output')
-    
-    return output
+    # 出力層（2クラス分類: 全結合層）
+    c5 = PF.affine(c4, 2, name='fc2')
+    # F.softmax_cross_entropy は内部で softmax を計算するため、既に softmax 済みの出力を渡すと正しい損失が計算されず、学習にも悪影響が出る
+    #y = F.softmax(logits)
+    return c5
+
 
 def train():
     # 実際のクラス数を検証
