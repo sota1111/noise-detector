@@ -28,7 +28,7 @@ NeuralNetwork::NeuralNetwork() {
     isRequestSpeaker = false;
     isTimerStopped = false;
     write_index = 0;
-    adcAverageDetect = 0;
+    adcAverageDetect = 2048;
     lastNNExecution = 0;
     nnInterval = 1000; // 1秒間隔
     integralValue = 0;
