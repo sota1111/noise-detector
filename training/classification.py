@@ -204,8 +204,8 @@ def audio_conv1d_prediction(x_in, test=False, aug=None):
     c4 = PF.affine(c3, 24, name='fc1')
     c4 = F.relu(c4)
     
-    # 出力層（2クラス分類: 全結合層）
-    c5 = PF.affine(c4, 2, name='fc2')
+    # 出力層（34クラス分類: 全結合層）
+    c5 = PF.affine(c4, num_classes, name='fc2')
     # F.softmax_cross_entropy は内部で softmax を計算するため、既に softmax 済みの出力を渡すと正しい損失が計算されず、学習にも悪影響が出る
     #y = F.softmax(logits)
     return c5
