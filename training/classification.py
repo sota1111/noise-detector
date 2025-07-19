@@ -21,7 +21,17 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
 
 input_size = 2000
-num_classes = 34  # label0-33の34クラス
+# 34クラス（軽量ネットワーク）
+num_classes = 34
+category_names = [
+    'dog', 'cat', 'rain', 'sea_waves', 'crackling_fire', 'crickets', 
+    'wind', 'water_drops', 'thunderstorm', 'crying_baby', 'sneezing', 
+    'clapping', 'breathing', 'coughing', 'footsteps', 'laughing', 
+    'brushing_teeth', 'snoring', 'door_wood_knock', 'mouse_click', 
+    'keyboard_typing', 'can_opening', 'washing_machine', 'vacuum_cleaner', 
+    'toilet_flush', 'clock_alarm', 'clock_tick', 'glass_breaking', 
+    'door_wood_creaks', 'siren', 'car_horn', 'engine', 'train', 'silent'
+]
 
 # 実際のクラス数を検証する
 def verify_num_classes():
@@ -32,17 +42,6 @@ def verify_num_classes():
         print(f"警告: 定義されたクラス数({num_classes})と実際のクラス数({actual_classes})が一致しません")
         return actual_classes
     return num_classes
-
-# カテゴリ名の定義
-category_names = [
-    'dog', 'cat', 'rain', 'sea_waves', 'crackling_fire', 'crickets', 
-    'wind', 'water_drops', 'thunderstorm', 'crying_baby', 'sneezing', 
-    'clapping', 'breathing', 'coughing', 'footsteps', 'laughing', 
-    'brushing_teeth', 'snoring', 'door_wood_knock', 'mouse_click', 
-    'keyboard_typing', 'can_opening', 'washing_machine', 'vacuum_cleaner', 
-    'toilet_flush', 'clock_alarm', 'clock_tick', 'glass_breaking', 
-    'door_wood_creaks', 'siren', 'car_horn', 'engine', 'train', 'silent'
-]
 
 def load_audio_csv(file_path, normalize=True):
     """
@@ -181,80 +180,30 @@ def augmentation(h, test, aug):
 
 def audio_conv1d_prediction(x_in, test=False, aug=None):
     """
-    34クラス分類用の最適化CNNモデル（ResNet風のスキップ接続付き）
+    極軽量34クラス分類用CNNモデル（M5Stack対応）
     """
-    # データ拡張
-    h = augmentation(x_in, test, aug) if aug and not test else x_in
+    h = x_in
     
-    # 1層目: 畳み込み → BatchNorm → ReLU
-    c1 = PF.convolution(h, 64, (15, 1), pad=(7, 0), name='conv1d_1')
-    c1 = PF.batch_normalization(c1, batch_stat=not test, name='bn1')
+    # 1層目: 非常に軽量な畳み込み（チャネル数を最小に）
+    c1 = PF.convolution(h, 8, (15, 1), pad=(7, 0), name='conv1d_1')
     c1 = F.relu(c1)
-    c1_pool = F.max_pooling(c1, (2, 1))
+    c1_pool = F.max_pooling(c1, (8, 1))  # 大きなプーリングでサイズ削減
     
-    # 2層目: 畳み込み → BatchNorm → ReLU + Residual
-    c2 = PF.convolution(c1_pool, 64, (11, 1), pad=(5, 0), name='conv1d_2a')
-    c2 = PF.batch_normalization(c2, batch_stat=not test, name='bn2a')
+    # 2層目: 軽量畳み込み
+    c2 = PF.convolution(c1_pool, 16, (11, 1), pad=(5, 0), name='conv1d_2')
     c2 = F.relu(c2)
-    c2 = PF.convolution(c2, 64, (11, 1), pad=(5, 0), name='conv1d_2b')
-    c2 = PF.batch_normalization(c2, batch_stat=not test, name='bn2b')
-    c2 = F.relu(c2 + c1_pool)  # スキップ接続
-    c2_pool = F.max_pooling(c2, (2, 1))
-    c2_pool = F.dropout(c2_pool, p=0.1 if not test else 0.0)
+    c2_pool = F.max_pooling(c2, (8, 1))
     
-    # 3層目: チャネル数増加 + Residual
-    c3_proj = PF.convolution(c2_pool, 128, (1, 1), name='conv1d_3_proj')  # チャネル調整
-    c3 = PF.convolution(c2_pool, 128, (9, 1), pad=(4, 0), name='conv1d_3a')
-    c3 = PF.batch_normalization(c3, batch_stat=not test, name='bn3a')
-    c3 = F.relu(c3)
-    c3 = PF.convolution(c3, 128, (9, 1), pad=(4, 0), name='conv1d_3b')
-    c3 = PF.batch_normalization(c3, batch_stat=not test, name='bn3b')
-    c3 = F.relu(c3 + c3_proj)  # スキップ接続
-    c3_pool = F.max_pooling(c3, (2, 1))
-    c3_pool = F.dropout(c3_pool, p=0.2 if not test else 0.0)
+    # Global Average Pooling（すぐに平均化）
+    gap = F.mean(c2_pool, axis=2, keepdims=True)
+    gap = F.reshape(gap, (gap.shape[0], -1))
     
-    # 4層目: チャネル数増加 + Residual
-    c4_proj = PF.convolution(c3_pool, 256, (1, 1), name='conv1d_4_proj')
-    c4 = PF.convolution(c3_pool, 256, (7, 1), pad=(3, 0), name='conv1d_4a')
-    c4 = PF.batch_normalization(c4, batch_stat=not test, name='bn4a')
-    c4 = F.relu(c4)
-    c4 = PF.convolution(c4, 256, (7, 1), pad=(3, 0), name='conv1d_4b')
-    c4 = PF.batch_normalization(c4, batch_stat=not test, name='bn4b')
-    c4 = F.relu(c4 + c4_proj)
-    c4_pool = F.max_pooling(c4, (2, 1))
-    c4_pool = F.dropout(c4_pool, p=0.3 if not test else 0.0)
-    
-    # 5層目: 最終特徴抽出
-    c5 = PF.convolution(c4_pool, 512, (5, 1), pad=(2, 0), name='conv1d_5')
-    c5 = PF.batch_normalization(c5, batch_stat=not test, name='bn5')
-    c5 = F.relu(c5)
-    c5 = F.dropout(c5, p=0.4 if not test else 0.0)
-    
-    # Global Average Pooling + Attention機構
-    gap = F.mean(c5, axis=2, keepdims=True)
-    
-    # 簡易的なAttention
-    att_weights = PF.convolution(c5, 1, (1, 1), name='attention')
-    att_weights = F.softmax(att_weights, axis=2)
-    att_pooled = F.sum(c5 * att_weights, axis=2, keepdims=True)
-    
-    # GAP + Attention のコンバイン
-    combined = F.concatenate(gap, att_pooled, axis=1)
-    combined = F.reshape(combined, (combined.shape[0], -1))
-    
-    # 分類層
-    fc1 = PF.affine(combined, 512, name='fc1')
-    fc1 = PF.batch_normalization(fc1, batch_stat=not test, name='bn_fc1')
+    # 分類層（最小構成）
+    fc1 = PF.affine(gap, 64, name='fc1')  # 小さな中間層
     fc1 = F.relu(fc1)
-    fc1 = F.dropout(fc1, p=0.5 if not test else 0.0)
-    
-    fc2 = PF.affine(fc1, 256, name='fc2')
-    fc2 = PF.batch_normalization(fc2, batch_stat=not test, name='bn_fc2')
-    fc2 = F.relu(fc2)
-    fc2 = F.dropout(fc2, p=0.5 if not test else 0.0)
     
     # 出力層
-    output = PF.affine(fc2, num_classes, name='fc_output')
+    output = PF.affine(fc1, num_classes, name='fc_output')
     
     return output
 
@@ -429,11 +378,11 @@ def train():
 
     contents = save_nnp({'x': vaudio}, {'y': vpred}, args.batch_size)
     save.save(os.path.join(args.model_save_path, '{}_result.nnp'.format(args.net)), contents)    
-    #plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
-    #plt_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
+    plot_training_progress(iteration_list, loss_list, error_list, val_iteration_list, val_error_list, val_accuracy_list)
+    plot_confusion_matrix(vaudio, vlabel, vpred, args.batch_size, args.val_iter, log_filename)
     
     # 個別のサンプルに対する確率を表示
-    #validate_specific_samples(parameter_file)
+    validate_specific_samples(parameter_file)
 
 def validate_specific_samples(model_path, num_samples=5):
     """
