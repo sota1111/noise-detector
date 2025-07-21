@@ -23,6 +23,9 @@ class AD3Controller:
         self.dwf = None
         self.hdwf = None
         self.is_connected = False
+        # 5秒間全体での正規化パラメータ
+        self.global_min = None
+        self.global_max = None
         # ダミーモードを削除：実機動作のみ
         if not PYDWF_AVAILABLE:
             raise ImportError("pydwfライブラリが必要です。'pip install pydwf'でインストールしてください。")
@@ -110,14 +113,35 @@ class AD3Controller:
             print(f"× 予期しないデバイス接続エラー: {e}")
             raise RuntimeError(f"AD3デバイス接続失敗: {e}")
     
+    def set_global_normalization_params(self, all_chunks):
+        """5秒間全体での正規化パラメータを設定"""
+        if not all_chunks:
+            self.global_min = 0.0
+            self.global_max = 1.0
+            return
+        
+        # 全チャンクの最小値・最大値を計算
+        all_data = np.concatenate(all_chunks)
+        self.global_min = np.min(all_data)
+        self.global_max = np.max(all_data)
+        
+        print(f"5秒間全体の正規化パラメータ設定:")
+        print(f"- 最小値: {self.global_min:.6f}")
+        print(f"- 最大値: {self.global_max:.6f}")
+    
     def _normalize_waveform(self, waveform_chunk):
-        """波形を0~3.3Vの範囲に正規化"""
-        min_val = np.min(waveform_chunk)
-        max_val = np.max(waveform_chunk)
-        if max_val > min_val:
-            waveform_normalized = (waveform_chunk - min_val) / (max_val - min_val) * 3.3
+        """波形を0~3.3Vの範囲に正規化（5秒間全体の基準で1.65Vを中心）"""
+        if self.global_min is None or self.global_max is None:
+            # グローバルパラメータが未設定の場合は1.65Vに設定
+            return np.ones_like(waveform_chunk) * AD3_OFFSET_VOLTAGE
+        
+        if self.global_max > self.global_min:
+            # 5秒間全体の最小値・最大値を使用して0~3.3Vに正規化
+            waveform_normalized = (waveform_chunk - self.global_min) / (self.global_max - self.global_min) * 3.3
         else:
+            # 無音の場合は1.65Vに設定
             waveform_normalized = np.ones_like(waveform_chunk) * AD3_OFFSET_VOLTAGE
+        
         return waveform_normalized
     
     def _output_and_record_real(self, waveform_chunk, chunk_index):
@@ -127,7 +151,6 @@ class AD3Controller:
             
             # AWG用に-1~1の範囲に変換
             awg_waveform = (waveform_normalized - AD3_OFFSET_VOLTAGE) / OUTPUT_AMP
-            awg_waveform = np.clip(awg_waveform, -1.0, 1.0)
             
             print(f"チャンク {chunk_index + 1}: 高レベルAPIで実機処理開始")
             

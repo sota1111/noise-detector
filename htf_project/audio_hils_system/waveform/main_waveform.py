@@ -66,6 +66,9 @@ def main():
         # ESC-50ラベル機能初期化
         esc50_labels = ESC50Labels()
         
+        # AD3コントローラーに5秒間全体の正規化パラメータを設定
+        ad3.set_global_normalization_params(selected_chunks)
+        
         # 5秒分のデータ処理
         print(f"\n--- 5秒データ処理開始 ---")
         
