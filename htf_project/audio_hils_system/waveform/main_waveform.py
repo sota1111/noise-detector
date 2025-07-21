@@ -114,9 +114,17 @@ def main():
             save_data, labeled_filename_base
         )
         
+        # 最初の1秒を高解像度で保存
+        highres_csv, highres_graph = data_handler.save_first_second_highres(
+            save_data, labeled_filename_base
+        )
+        
         print(f"5秒テスト保存完了:")
         print(f"- CSV: {csv_path}")
         print(f"- グラフ: {graph_path}")
+        if highres_csv and highres_graph:
+            print(f"- 高解像度CSV: {highres_csv}")
+            print(f"- 高解像度グラフ: {highres_graph}")
         
         # デバイス切断
         print(f"\n--- デバイス切断 ---")

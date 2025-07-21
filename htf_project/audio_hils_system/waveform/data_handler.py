@@ -127,3 +127,90 @@ class DataHandler:
         print(f"- サンプル数: {len(input_voltage)}")
 
         return csv_filename, plot_filename
+    
+    def save_first_second_highres(self, result_data, labeled_filename_base):
+        """
+        最初の1秒を高解像度でCSVとグラフ保存
+        
+        Args:
+            result_data (dict): 連続データ
+            labeled_filename_base (str): ラベル付きファイル名のベース
+            
+        Returns:
+            tuple: (CSVファイルパス, グラフファイルパス) or (None, None) if no data
+        """
+        output_voltage = result_data['output_voltage']
+        input_voltage  = result_data['input_voltage']
+        
+        # リストの場合は配列に変換
+        if isinstance(output_voltage, list):
+            output_voltage = np.concatenate(output_voltage)
+            input_voltage  = np.concatenate(input_voltage)
+        
+        # 1秒分のサンプル数を計算
+        samples_per_second = int(self.sample_rate * EXTRACT_DURATION)
+        
+        if len(output_voltage) < samples_per_second:
+            print("警告: データが1秒未満のため、高解像度保存をスキップします")
+            return None, None
+        
+        # 最初の1秒のデータを抽出
+        first_sec_output = output_voltage[:samples_per_second]
+        first_sec_input = input_voltage[:samples_per_second]
+        
+        # 時間軸作成
+        time_axis = np.arange(len(first_sec_output)) / self.sample_rate
+        
+        # CSV保存
+        df = pd.DataFrame({
+            'Time(s)': time_axis,
+            'Output_Voltage(V)': first_sec_output,
+            'Input_Voltage(V)': first_sec_input
+        })
+        csv_filename = os.path.join(self.csv_folder, f"{labeled_filename_base}_first1s_highres.csv")
+        df.to_csv(csv_filename, index=False)
+        
+        # 高解像度グラフ作成
+        plt.figure(figsize=(16, 12))  # より大きなサイズ
+        
+        # 出力電圧のプロット（高解像度）
+        plt.subplot(2, 1, 1)
+        plt.plot(time_axis, first_sec_output, 'r-', linewidth=0.8, label='Output Voltage')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Output Voltage (V)')
+        plt.title(f'High-Res Output Voltage (First 1s) - {labeled_filename_base}')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.xlim(0, 1.0)
+        plt.ylim(0, 3.5)
+        
+        # より細かい時間軸のティック
+        plt.xticks(np.arange(0, 1.1, 0.1))
+        
+        # 入力電圧のプロット（高解像度）
+        plt.subplot(2, 1, 2)
+        plt.plot(time_axis, first_sec_input, 'b-', linewidth=0.8, label='Input Voltage')
+        plt.xlabel('Time (s)')
+        plt.ylabel('Input Voltage (V)')
+        plt.title(f'High-Res Captured Input Voltage (First 1s) - {labeled_filename_base}')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.xlim(0, 1.0)
+        plt.ylim(0, 3.5)
+        
+        # より細かい時間軸のティック
+        plt.xticks(np.arange(0, 1.1, 0.1))
+        
+        plt.tight_layout()
+        
+        # 高解像度で保存
+        plot_filename = os.path.join(self.graph_folder, f"{labeled_filename_base}_first1s_highres.png")
+        plt.savefig(plot_filename, dpi=600, bbox_inches='tight')  # 高DPI
+        plt.close()
+        
+        print(f"最初の1秒高解像度保存完了:")
+        print(f"- CSV: {csv_filename}")
+        print(f"- グラフ: {plot_filename}")
+        print(f"- サンプル数: {len(first_sec_output)}")
+        
+        return csv_filename, plot_filename
