@@ -386,23 +386,35 @@ class AD3Controller:
     
     def disconnect(self):
         """デバイス接続を切断"""
-        if self.is_connected and self.hdwf is not None:
+        if not self.is_connected or self.hdwf is None:
+            return False
+        try:
+            # まず高レベルAPIによるクローズを試行
             try:
+                self.dwf.deviceControl.close(self.hdwf)
+            except Exception:
+                # フォールバックで低レベルAPIを利用
+                # hdwfハンドルを正しくc_int化
                 if isinstance(self.hdwf, int):
-                    if self.dwf and hasattr(self.dwf, '_lib'):
-                        self.dwf._lib.FDwfDeviceClose(ctypes.c_int(self.hdwf))
+                    hdwf_c = ctypes.c_int(self.hdwf)
+                elif hasattr(self.hdwf, 'value'):
+                    hdwf_c = ctypes.c_int(self.hdwf.value)
+                elif hasattr(self.hdwf, '_hdwf'):
+                    hdwf_c = ctypes.c_int(self.hdwf._hdwf)
                 else:
-                    # 高レベルAPIでのクローズを試行
-                    try:
-                        self.dwf.deviceControl.close(self.hdwf)
-                    except AttributeError:
-                        # 属性が存在しない場合は低レベルAPIを使用
-                        if hasattr(self.hdwf, 'value'):
-                            self.dwf._lib.FDwfDeviceClose(ctypes.c_int(self.hdwf.value))
-                        else:
-                            self.dwf._lib.FDwfDeviceClose(ctypes.c_int(int(self.hdwf)))
-                print("デバイス接続を終了しました")
-            except Exception as e:
-                print(f"デバイスクローズエラー: {e}")
-            finally:
-                self.is_connected = False
+                    hdwf_c = None
+
+                if hdwf_c is not None and self.dwf and hasattr(self.dwf, '_lib'):
+                    self.dwf._lib.FDwfDeviceClose(hdwf_c)
+
+            print("デバイス接続を終了しました")
+            return True
+
+        except Exception as e:
+            print(f"デバイスクローズエラー: {e}")
+            return False
+
+        finally:
+            # 状態をリセット
+            self.is_connected = False
+            self.hdwf = None
