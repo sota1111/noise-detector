@@ -17,6 +17,7 @@ class AudioProcessor:
         self.sample_rate = SAMPLE_RATE
         self.chunk_duration = EXTRACT_DURATION
     
+    
     def load_audio_file(self, wav_file):
         """
         音声ファイルを読み込み、指定のサンプリングレートにリサンプリングする
@@ -76,7 +77,7 @@ class AudioProcessor:
                 chunks.append(chunk)
         
         return chunks
-    
+
     def process_audio_file(self, wav_file_path):
         """
         音声ファイルを読み込み、チャンクに分割して返す
