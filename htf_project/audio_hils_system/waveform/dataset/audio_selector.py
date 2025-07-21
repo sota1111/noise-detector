@@ -7,7 +7,7 @@ import os
 import glob
 import random
 from pathlib import Path
-from esc50_labels import ESC50Labels
+from .esc50_labels import ESC50Labels
 
 
 class AudioSelector:

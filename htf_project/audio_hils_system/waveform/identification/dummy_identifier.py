@@ -7,7 +7,7 @@ import random
 import numpy as np
 import time
 from pathlib import Path
-from esc50_labels import ESC50Labels
+from ..dataset.esc50_labels import ESC50Labels
 
 
 class DummyIdentifier:

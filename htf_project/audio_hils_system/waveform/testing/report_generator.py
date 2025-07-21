@@ -11,7 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-from config import OUTPUT_CSV_FOLDER, OUTPUT_GRAPH_FOLDER
+from ..config.config import OUTPUT_CSV_FOLDER, OUTPUT_GRAPH_FOLDER
 
 
 class ReportGenerator:

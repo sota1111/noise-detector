@@ -8,12 +8,12 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from audio_processor import AudioProcessor
-from ad3_controller import AD3Controller
-from data_handler import DataHandler
-from esc50_labels import ESC50Labels
-from audio_selector import AudioSelector
-from dummy_identifier import DummyIdentifier
+from ..core.audio_processor import AudioProcessor
+from ..core.ad3_controller import AD3Controller
+from ..core.data_handler import DataHandler
+from ..dataset.esc50_labels import ESC50Labels
+from ..dataset.audio_selector import AudioSelector
+from ..identification.dummy_identifier import DummyIdentifier
 
 
 class TestEngine:

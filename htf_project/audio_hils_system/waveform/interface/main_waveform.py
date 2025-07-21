@@ -5,11 +5,11 @@
 
 import sys
 import os
-from audio_processor import AudioProcessor
-from ad3_controller import AD3Controller
-from data_handler import DataHandler
-from esc50_labels import ESC50Labels
-from config import DEFAULT_AUDIO_FILES
+from ..core.audio_processor import AudioProcessor
+from ..core.ad3_controller import AD3Controller
+from ..core.data_handler import DataHandler
+from ..dataset.esc50_labels import ESC50Labels
+from ..config.config import DEFAULT_AUDIO_FILES
 
 
 def main():

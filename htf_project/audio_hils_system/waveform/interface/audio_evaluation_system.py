@@ -7,9 +7,9 @@ import sys
 import argparse
 from pathlib import Path
 
-from test_engine import TestEngine
-from audio_selector import AudioSelector
-from report_generator import ReportGenerator
+from ..testing.test_engine import TestEngine
+from ..dataset.audio_selector import AudioSelector
+from ..testing.report_generator import ReportGenerator
 
 
 class AudioEvaluationSystem:

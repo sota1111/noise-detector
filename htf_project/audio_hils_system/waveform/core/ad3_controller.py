@@ -6,7 +6,7 @@ pydwf依存の部分を分離
 import numpy as np
 import time
 import ctypes
-from config import OUTPUT_AMP, AD3_SCOPE_RANGE, AD3_OFFSET_VOLTAGE, SAMPLE_RATE, EXTRACT_DURATION
+from ..config.config import OUTPUT_AMP, AD3_SCOPE_RANGE, AD3_OFFSET_VOLTAGE, SAMPLE_RATE, EXTRACT_DURATION
 
 try:
     import pydwf

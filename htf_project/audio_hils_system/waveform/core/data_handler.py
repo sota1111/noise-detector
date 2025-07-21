@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
-from config import (
+from ..config.config import (
     OUTPUT_CSV_FOLDER, OUTPUT_GRAPH_FOLDER, SAMPLE_RATE, EXTRACT_DURATION,
     GRAPH_DPI, GRAPH_FIGSIZE, GRAPH_LINEWIDTH, GRAPH_ALPHA
 )

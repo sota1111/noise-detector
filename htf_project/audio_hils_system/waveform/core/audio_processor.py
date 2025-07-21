@@ -9,7 +9,7 @@ from scipy import signal
 import os
 import random
 import glob
-from config import SAMPLE_RATE, EXTRACT_DURATION, DEFAULT_AUDIO_FILES
+from ..config.config import SAMPLE_RATE, EXTRACT_DURATION, DEFAULT_AUDIO_FILES
 
 
 class AudioProcessor:

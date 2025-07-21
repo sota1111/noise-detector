@@ -10,3 +10,6 @@ inference/src/config/secret.h
 *.pyc
 htf_project/audio_hils_system/waveform/output/*
 htf_project/audio_hils_system/waveform/old/*
+htf_project/audio_hils_system/waveform/data/output/*
+htf_project/output/*
+htf_project/output/graphs/2-140841-A-30_door_wood_knock_random_20250721_151830_file003_first1s_highres.png
