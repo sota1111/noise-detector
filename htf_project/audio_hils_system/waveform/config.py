@@ -4,7 +4,6 @@
 """
 
 # フォルダ設定
-INPUT_FOLDER = "input"
 OUTPUT_CSV_FOLDER = "output/csv"
 OUTPUT_GRAPH_FOLDER = "output/graphs"
 
@@ -17,9 +16,9 @@ OUTPUT_AMP = 1.65           # ±1.65V (3.3V p-p)
 AD3_SCOPE_RANGE = 5.0       # スコープ範囲 ±5V
 AD3_OFFSET_VOLTAGE = 1.65   # オフセット電圧
 
-# デフォルト音声ファイル候補
+# デフォルト音声ファイル候補（ESC-50が見つからない場合の フォールバック）
 DEFAULT_AUDIO_FILES = [
-    f"{INPUT_FOLDER}/1-137-A-32.wav",
+    "input/1-137-A-32.wav",
     "1-137-A-32.wav",
     "ESC-50/audio/1-137-A-32.wav"
 ]

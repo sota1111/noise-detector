@@ -7,6 +7,8 @@ import numpy as np
 import wave
 from scipy import signal
 import os
+import random
+import glob
 from config import SAMPLE_RATE, EXTRACT_DURATION, DEFAULT_AUDIO_FILES
 
 
@@ -113,14 +115,34 @@ class AudioProcessor:
     @staticmethod
     def find_default_audio_file():
         """
-        デフォルト音声ファイルを探す
+        デフォルト音声ファイルを探す（ランダム選択）
         
         Returns:
             str or None: 見つかったファイルのパス、見つからない場合はNone
         """
+        # ESC-50フォルダから音声ファイルを探す
+        esc50_patterns = [
+            "ESC-50/audio/*.wav",
+            "../ESC-50/audio/*.wav",
+            "../../ESC-50/audio/*.wav"
+        ]
+        
+        all_audio_files = []
+        for pattern in esc50_patterns:
+            files = glob.glob(pattern)
+            if files:
+                all_audio_files.extend(files)
+                break
+        
+        # ESC-50ファイルが見つかった場合はランダムに選択
+        if all_audio_files:
+            return random.choice(all_audio_files)
+        
+        # ESC-50が見つからない場合はデフォルトファイルを順次チェック
         for file_path in DEFAULT_AUDIO_FILES:
             if os.path.exists(file_path):
                 return file_path
+                
         return None
     
     @staticmethod
