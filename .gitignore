@@ -9,3 +9,4 @@ inference/src/config/secret.h
 .gitignore
 *.pyc
 htf_project/audio_hils_system/waveform/output/*
+htf_project/audio_hils_system/waveform/old/*

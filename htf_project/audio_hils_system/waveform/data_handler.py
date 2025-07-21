@@ -94,6 +94,7 @@ class DataHandler:
         plt.grid(True, alpha=GRAPH_ALPHA)
         plt.legend()
         plt.xlim(start_time, start_time + self.extract_duration)
+        plt.ylim(0, 4)  # 縦軸を0-4Vに固定
         
         # 入力電圧のプロット
         plt.subplot(2, 1, 2)
@@ -104,6 +105,7 @@ class DataHandler:
         plt.grid(True, alpha=GRAPH_ALPHA)
         plt.legend()
         plt.xlim(start_time, start_time + self.extract_duration)
+        plt.ylim(0, 4)  # 縦軸を0-4Vに固定
         
         plt.tight_layout()
         
@@ -358,6 +360,7 @@ class DataHandler:
         plt.grid(True, alpha=GRAPH_ALPHA)
         plt.legend()
         plt.xlim(0, total_duration)
+        plt.ylim(0, 4)  # 縦軸を0-4Vに固定
         
         # 入力電圧のプロット
         plt.subplot(2, 1, 2)
@@ -374,6 +377,7 @@ class DataHandler:
         plt.grid(True, alpha=GRAPH_ALPHA)
         plt.legend()
         plt.xlim(0, total_duration)
+        plt.ylim(0, 4)  # 縦軸を0-4Vに固定
         
         plt.tight_layout()
         
@@ -457,6 +461,7 @@ class DataHandler:
         plt.grid(True, alpha=GRAPH_ALPHA)
         plt.legend()
         plt.xlim(0, total_duration)
+        plt.ylim(0, 4)  # 縦軸を0-4Vに固定
         
         # 入力電圧のプロット
         plt.subplot(2, 1, 2)
@@ -473,6 +478,7 @@ class DataHandler:
         plt.grid(True, alpha=GRAPH_ALPHA)
         plt.legend()
         plt.xlim(0, total_duration)
+        plt.ylim(0, 4)  # 縦軸を0-4Vに固定
         
         plt.tight_layout()
         
