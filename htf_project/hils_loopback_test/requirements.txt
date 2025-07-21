@@ -1,3 +1,0 @@
-# HILS Loopback Test Requirements
-pydwf>=1.1.19
-numpy>=1.20.0
