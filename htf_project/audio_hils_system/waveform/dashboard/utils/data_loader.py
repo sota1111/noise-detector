@@ -27,55 +27,86 @@ class DataLoader:
         
         self.data_output_path = self.base_path / "audio_hils_system" / "waveform" / "data" / "output"
         self.output_path = self.base_path / "output"
-        self.reports_path = self.data_output_path / "reports"
+        
+        # 両方のレポートパスを検索対象に
+        self.reports_paths = [
+            self.output_path / "reports",  # 新しい場所（最新セッション）
+            self.data_output_path / "reports"  # 古い場所（既存セッション）
+        ]
         self.csv_path = self.data_output_path / "csv"
         self.graphs_path = self.output_path / "graphs"
     
     def get_available_sessions(self) -> List[Dict]:
-        """利用可能なテストセッション一覧を取得"""
+        """利用可能なテストセッション一覧を取得（複数パス対応）"""
         sessions = []
         
-        if not self.reports_path.exists():
-            return sessions
-        
-        # セッションサマリーファイルから情報を取得
-        summary_files = glob.glob(str(self.reports_path / "session_*_summary.md"))
-        
-        for summary_file in summary_files:
-            try:
-                session_id = Path(summary_file).name.replace("session_", "").replace("_summary.md", "")
-                
-                # 対応するCSVファイルを探す
-                csv_file = self.reports_path / f"{session_id}_statistics.csv"
-                batch_report = self.reports_path / f"*{session_id}_batch_report.md"
-                
-                sessions.append({
-                    'session_id': session_id,
-                    'summary_file': summary_file,
-                    'csv_file': str(csv_file) if csv_file.exists() else None,
-                    'batch_reports': glob.glob(str(batch_report))
-                })
-            except Exception as e:
-                print(f"セッション情報の取得エラー: {e}")
+        # 複数のレポートパスを検索
+        for reports_path in self.reports_paths:
+            if not reports_path.exists():
                 continue
+                
+            # セッションサマリーファイルから情報を取得
+            summary_files = glob.glob(str(reports_path / "session_*_summary.md"))
+            
+            for summary_file in summary_files:
+                try:
+                    session_id = Path(summary_file).name.replace("session_", "").replace("_summary.md", "")
+                    
+                    # 既に追加済みのセッションはスキップ
+                    if any(s['session_id'] == session_id for s in sessions):
+                        continue
+                    
+                    # 対応するCSVファイルを探す（複数パターン対応）
+                    csv_patterns = [
+                        reports_path / f"{session_id}_statistics.csv",
+                        reports_path / f"*{session_id}_statistics.csv"
+                    ]
+                    
+                    csv_file = None
+                    for pattern in csv_patterns:
+                        csv_matches = glob.glob(str(pattern))
+                        if csv_matches:
+                            csv_file = csv_matches[0]  # 最初のマッチを使用
+                            break
+                    
+                    # バッチレポートファイルを探す
+                    batch_reports = glob.glob(str(reports_path / f"*{session_id}_batch_report.md"))
+                    
+                    sessions.append({
+                        'session_id': session_id,
+                        'summary_file': summary_file,
+                        'csv_file': csv_file,
+                        'batch_reports': batch_reports,
+                        'reports_path': str(reports_path)  # どのパスから取得したかを記録
+                    })
+                except Exception as e:
+                    print(f"セッション情報の取得エラー ({summary_file}): {e}")
+                    continue
         
+        # セッションIDで降順ソート（最新が先頭）
         return sorted(sessions, key=lambda x: x['session_id'], reverse=True)
     
     def load_session_statistics(self, session_id: str) -> Optional[pd.DataFrame]:
-        """特定セッションの統計データを読み込み"""
+        """特定セッションの統計データを読み込み（複数パス対応）"""
         try:
-            # セッションに対応するCSVファイルを探す
-            csv_files = glob.glob(str(self.reports_path / f"*{session_id}_statistics.csv"))
+            # 複数のレポートパスでCSVファイルを探す
+            csv_files = []
+            for reports_path in self.reports_paths:
+                csv_pattern = str(reports_path / f"*{session_id}_statistics.csv")
+                csv_files.extend(glob.glob(csv_pattern))
             
             if not csv_files:
+                print(f"セッション {session_id} の統計CSVファイルが見つかりません")
                 return None
             
-            # 最新のCSVファイルを読み込み
+            # 最新のCSVファイルを読み込み（タイムスタンプ順）
+            csv_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
             df = pd.read_csv(csv_files[0])
+            print(f"統計データ読み込み成功: {csv_files[0]} ({len(df)} 行)")
             return df
             
         except Exception as e:
-            print(f"統計データの読み込みエラー: {e}")
+            print(f"統計データの読み込みエラー ({session_id}): {e}")
             return None
     
     def load_all_statistics(self) -> pd.DataFrame:
