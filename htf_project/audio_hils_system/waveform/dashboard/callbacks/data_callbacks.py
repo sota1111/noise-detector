@@ -66,3 +66,24 @@ def register_data_callbacks(app):
         
         stats = graph_generator.create_test_summary_cards(df)
         return create_summary_cards(stats)
+
+    @app.callback(
+        [Output("waveform-file-dropdown", "options"),
+         Output("waveform-file-dropdown", "value")],
+        [Input("current-data", "data")]
+    )
+    def update_waveform_file_options(data: List[Dict]) -> Tuple:
+        """波形ファイル選択肢を更新"""
+        if not data:
+            return [], ""
+        
+        df = pd.DataFrame(data)
+        
+        # ファイル名のユニークなリストを作成
+        filenames = df['filename'].unique().tolist()
+        file_options = [{"label": f, "value": f} for f in filenames]
+        
+        # 最初のファイルをデフォルト選択
+        default_value = filenames[0] if filenames else ""
+        
+        return file_options, default_value

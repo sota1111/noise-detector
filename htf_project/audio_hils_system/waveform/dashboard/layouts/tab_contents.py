@@ -65,8 +65,20 @@ def create_waveform_content():
         dbc.Row([
             dbc.Col([
                 html.H5("音声波形表示"),
-                html.P("選択されたセッションの最初の音声ファイルの波形を表示します"),
+                html.P("波形を表示する音声ファイルを選択してください"),
             ], width=12),
+        ], className="mb-4"),
+        
+        dbc.Row([
+            dbc.Col([
+                html.Label("音声ファイル選択:"),
+                dcc.Dropdown(
+                    id="waveform-file-dropdown",
+                    options=[],
+                    value="",
+                    placeholder="波形ファイルを選択してください"
+                ),
+            ], width=6),
         ], className="mb-4"),
         
         dbc.Row([

@@ -25,9 +25,10 @@ class DataLoader:
         else:
             self.base_path = Path(base_path)
         
+        self.data_output_path = self.base_path / "audio_hils_system" / "waveform" / "data" / "output"
         self.output_path = self.base_path / "output"
-        self.reports_path = self.output_path / "reports"
-        self.csv_path = self.output_path / "csv"
+        self.reports_path = self.data_output_path / "reports"
+        self.csv_path = self.data_output_path / "csv"
         self.graphs_path = self.output_path / "graphs"
     
     def get_available_sessions(self) -> List[Dict]:
@@ -118,12 +119,28 @@ class DataLoader:
             # 簡単な情報抽出
             lines = content.split('\n')
             for line in lines:
-                if '総テスト数:' in line:
-                    summary['total_tests'] = int(line.split(':')[1].strip())
-                elif '成功テスト数:' in line:
-                    summary['success_tests'] = int(line.split(':')[1].strip())
-                elif '成功率:' in line:
-                    summary['success_rate'] = float(line.split(':')[1].strip().replace('%', ''))
+                try:
+                    if '総テスト数:' in line:
+                        value = line.split(':')[1].strip()
+                        # 数値以外の文字を除去
+                        numeric_value = ''.join(filter(str.isdigit, value))
+                        if numeric_value:
+                            summary['total_tests'] = int(numeric_value)
+                    elif '成功テスト数:' in line:
+                        value = line.split(':')[1].strip()
+                        numeric_value = ''.join(filter(str.isdigit, value))
+                        if numeric_value:
+                            summary['success_tests'] = int(numeric_value)
+                    elif '成功率:' in line:
+                        value = line.split(':')[1].strip().replace('%', '')
+                        # 小数点と数字のみを抽出
+                        import re
+                        numeric_match = re.search(r'[\d.]+', value)
+                        if numeric_match:
+                            summary['success_rate'] = float(numeric_match.group())
+                except (ValueError, IndexError) as e:
+                    print(f"サマリー行の解析エラー ({line}): {e}")
+                    continue
             
             return summary
             
@@ -151,18 +168,28 @@ class DataLoader:
                 if 'first1s_highres' in csv_file:
                     # 高解像度データ
                     df = pd.read_csv(csv_file)
+                    # 実際の列名に対応
+                    time_col = 'Time(s)' if 'Time(s)' in df.columns else 'time'
+                    input_col = 'Input_Voltage(V)' if 'Input_Voltage(V)' in df.columns else 'input_voltage'
+                    output_col = 'Output_Voltage(V)' if 'Output_Voltage(V)' in df.columns else 'output_voltage'
+                    
                     waveform_data['highres'] = {
-                        'time': df.get('time', []).tolist(),
-                        'input_voltage': df.get('input_voltage', []).tolist(),
-                        'output_voltage': df.get('output_voltage', []).tolist()
+                        'time': df[time_col].tolist() if time_col in df.columns else [],
+                        'input_voltage': df[input_col].tolist() if input_col in df.columns else [],
+                        'output_voltage': df[output_col].tolist() if output_col in df.columns else []
                     }
                 else:
                     # 標準データ
                     df = pd.read_csv(csv_file)
+                    # 実際の列名に対応
+                    time_col = 'Time(s)' if 'Time(s)' in df.columns else 'time'
+                    input_col = 'Input_Voltage(V)' if 'Input_Voltage(V)' in df.columns else 'input_voltage'
+                    output_col = 'Output_Voltage(V)' if 'Output_Voltage(V)' in df.columns else 'output_voltage'
+                    
                     waveform_data['standard'] = {
-                        'time': df.get('time', []).tolist(),
-                        'input_voltage': df.get('input_voltage', []).tolist(),
-                        'output_voltage': df.get('output_voltage', []).tolist()
+                        'time': df[time_col].tolist() if time_col in df.columns else [],
+                        'input_voltage': df[input_col].tolist() if input_col in df.columns else [],
+                        'output_voltage': df[output_col].tolist() if output_col in df.columns else []
                     }
             
             return waveform_data if waveform_data else None

@@ -44,27 +44,30 @@ def register_graph_callbacks(app):
     )
     def update_performance_timeline(n_intervals: int):
         """性能推移を更新"""
+        
         timeline_df = data_loader.get_test_performance_over_time()
+        if timeline_df.empty:
+            return graph_generator._create_empty_figure("時系列データがありません")
+        
         return graph_generator.create_performance_timeline(timeline_df)
 
     @app.callback(
         Output("waveform-plot", "figure"),
-        [Input("current-data", "data")],
+        [Input("waveform-file-dropdown", "value")],
         prevent_initial_call=True
     )
-    def update_waveform_plot(data: List[Dict]):
+    def update_waveform_plot(selected_filename: str):
         """波形プロットを更新"""
-        if not data:
-            return graph_generator._create_empty_figure("データがありません")
+        if not selected_filename:
+            return graph_generator._create_empty_figure("ファイルが選択されていません")
         
-        # 最初のファイルの波形を表示
-        df = pd.DataFrame(data)
-        if len(df) > 0:
-            first_file = df.iloc[0]['filename']
-            waveform_data = data_loader.get_waveform_data(first_file)
-            return graph_generator.create_waveform_plot(
-                waveform_data, 
-                title=f"音声波形: {first_file}"
-            )
+        # 選択されたファイルの波形データを取得
+        waveform_data = data_loader.get_waveform_data(selected_filename)
         
-        return graph_generator._create_empty_figure("波形データがありません")
+        if not waveform_data:
+            return graph_generator._create_empty_figure(f"波形データが見つかりません: {selected_filename}")
+        
+        return graph_generator.create_waveform_plot(
+            waveform_data, 
+            title=f"音声波形: {selected_filename}"
+        )
