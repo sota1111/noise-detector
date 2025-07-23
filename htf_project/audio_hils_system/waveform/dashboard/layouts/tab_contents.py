@@ -10,19 +10,15 @@ def create_statistics_content():
     return dbc.Container([
         dbc.Row([
             dbc.Col([
-                dcc.Loading(
-                    dcc.Graph(id="accuracy-bar-chart"),
-                    type="default"
-                )
-            ], width=6),
-            dbc.Col([
-                dcc.Loading(
-                    dcc.Graph(id="confidence-histogram"),
-                    type="default"
-                )
-            ], width=6),
-        ], className="mb-4"),
-        
+                html.H5("統計分析タブ"),
+                html.P("このタブは現在統計概要の表示に使用されています。"),
+            ], width=12),
+        ]),
+    ], fluid=True)
+
+def create_distributions_content():
+    """分布分析タブのコンテンツ"""
+    return dbc.Container([
         dbc.Row([
             dbc.Col([
                 dcc.Loading(
@@ -32,10 +28,36 @@ def create_statistics_content():
             ], width=6),
             dbc.Col([
                 dcc.Loading(
-                    dcc.Graph(id="confusion-matrix"),
+                    dcc.Graph(id="confidence-histogram"),
                     type="default"
                 )
             ], width=6),
+        ]),
+    ], fluid=True)
+
+def create_accuracy_content():
+    """精度バーチャートタブのコンテンツ"""
+    return dbc.Container([
+        dbc.Row([
+            dbc.Col([
+                dcc.Loading(
+                    dcc.Graph(id="accuracy-bar-chart"),
+                    type="default"
+                )
+            ], width=12),
+        ]),
+    ], fluid=True)
+
+def create_confusion_content():
+    """混合行列タブのコンテンツ"""
+    return dbc.Container([
+        dbc.Row([
+            dbc.Col([
+                dcc.Loading(
+                    dcc.Graph(id="confusion-matrix"),
+                    type="default"
+                )
+            ], width=12),
         ]),
     ], fluid=True)
 

@@ -105,6 +105,9 @@ def create_main_tabs():
     """メインタブを作成"""
     return dbc.Tabs([
         dbc.Tab(label="統計分析", tab_id="statistics-tab"),
+        dbc.Tab(label="識別精度", tab_id="accuracy-tab"),
+        dbc.Tab(label="混合行列", tab_id="confusion-tab"),
+        dbc.Tab(label="分布分析", tab_id="distributions-tab"),
         dbc.Tab(label="詳細分析", tab_id="details-tab"),
         dbc.Tab(label="波形表示", tab_id="waveform-tab"),
     ], id="main-tabs", active_tab="statistics-tab")

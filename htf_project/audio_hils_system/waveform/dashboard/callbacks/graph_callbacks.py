@@ -13,30 +13,60 @@ def register_graph_callbacks(app):
     """グラフ関連のコールバックを登録"""
     
     @app.callback(
-        [Output("accuracy-bar-chart", "figure"),
-         Output("confidence-histogram", "figure"),
-         Output("response-time-boxplot", "figure"),
-         Output("confusion-matrix", "figure")],
+        Output("accuracy-bar-chart", "figure"),
         [Input("current-data", "data"),
          Input("category-checklist", "value")]
     )
-    def update_statistics_graphs(data: List[Dict], selected_categories: List[str]) -> Tuple:
-        """統計グラフを更新"""
+    def update_accuracy_graph(data: List[Dict], selected_categories: List[str]):
+        """識別精度グラフを更新"""
         if not data:
-            empty_fig = graph_generator._create_empty_figure("データがありません")
-            return empty_fig, empty_fig, empty_fig, empty_fig
+            return graph_generator._create_empty_figure("データがありません")
         
         df = pd.DataFrame(data)
         
         if selected_categories:
             df = df[df['category'].isin(selected_categories)]
         
-        accuracy_fig = graph_generator.create_accuracy_by_category_bar(df)
-        confidence_fig = graph_generator.create_confidence_histogram(df)
-        response_fig = graph_generator.create_response_time_boxplot(df)
-        confusion_fig = graph_generator.create_confusion_matrix(df)
+        return graph_generator.create_accuracy_by_category_bar(df)
+
+    @app.callback(
+        Output("confusion-matrix", "figure"),
+        [Input("current-data", "data"),
+         Input("category-checklist", "value")]
+    )
+    def update_confusion_matrix(data: List[Dict], selected_categories: List[str]):
+        """混合行列を更新"""
+        if not data:
+            return graph_generator._create_empty_figure("データがありません")
         
-        return accuracy_fig, confidence_fig, response_fig, confusion_fig
+        df = pd.DataFrame(data)
+        
+        if selected_categories:
+            df = df[df['category'].isin(selected_categories)]
+        
+        return graph_generator.create_confusion_matrix(df)
+
+    @app.callback(
+        [Output("response-time-boxplot", "figure"),
+         Output("confidence-histogram", "figure")],
+        [Input("current-data", "data"),
+         Input("category-checklist", "value")]
+    )
+    def update_distributions_graphs(data: List[Dict], selected_categories: List[str]) -> Tuple:
+        """分布グラフを更新"""
+        if not data:
+            empty_fig = graph_generator._create_empty_figure("データがありません")
+            return empty_fig, empty_fig
+        
+        df = pd.DataFrame(data)
+        
+        if selected_categories:
+            df = df[df['category'].isin(selected_categories)]
+        
+        response_fig = graph_generator.create_response_time_boxplot(df)
+        confidence_fig = graph_generator.create_confidence_histogram(df)
+        
+        return response_fig, confidence_fig
 
     @app.callback(
         Output("performance-timeline", "figure"),
