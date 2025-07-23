@@ -54,7 +54,7 @@ def create_confusion_content():
         dbc.Row([
             dbc.Col([
                 dcc.Loading(
-                    dcc.Graph(id="confusion-matrix"),
+                    dcc.Graph(id="confusion-matrix", style={"height": "1000px"}),
                     type="default"
                 )
             ], width=12),
