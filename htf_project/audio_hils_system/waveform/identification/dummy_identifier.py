@@ -26,15 +26,13 @@ class DummyIdentifier:
         
         # ESC-50カテゴリ一覧（実際のESC-50データセットに基づく）
         self.esc50_categories = [
-            'dog', 'rooster', 'pig', 'cow', 'frog', 'cat', 'hen', 'insects', 'sheep', 'crow',
-            'rain', 'sea_waves', 'crackling_fire', 'crickets', 'chirping_birds', 'water_drops', 
-            'wind', 'pouring_water', 'toilet_flush', 'thunderstorm',
-            'crying_baby', 'sneezing', 'clapping', 'breathing', 'coughing', 'footsteps', 
-            'laughing', 'brushing_teeth', 'snoring', 'drinking_sipping',
-            'door_wood_knock', 'mouse_click', 'keyboard_typing', 'door_wood_creaks', 
-            'can_opening', 'washing_machine', 'vacuum_cleaner', 'clock_alarm', 'clock_tick', 'glass_breaking',
-            'helicopter', 'chainsaw', 'siren', 'car_horn', 'engine', 'train', 'church_bells', 
-            'airplane', 'fireworks', 'hand_saw'
+            'dog', 'cat', 'rain', 'sea_waves', 'crackling_fire', 'crickets', 
+            'wind', 'water_drops', 'thunderstorm', 'crying_baby', 'sneezing', 
+            'clapping', 'breathing', 'coughing', 'footsteps', 'laughing', 
+            'brushing_teeth', 'snoring', 'door_wood_knock', 'mouse_click', 
+            'keyboard_typing', 'can_opening', 'washing_machine', 'vacuum_cleaner', 
+            'toilet_flush', 'clock_alarm', 'clock_tick', 'glass_breaking', 
+            'door_wood_creaks', 'siren', 'car_horn', 'engine', 'train', 'silent'
         ]
         
         print(f"ダミー音声識別器初期化完了（正解率: {accuracy_rate*100:.1f}%）")
