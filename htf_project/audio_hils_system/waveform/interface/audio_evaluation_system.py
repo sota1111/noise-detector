@@ -5,6 +5,7 @@
 
 import sys
 import argparse
+import signal
 from pathlib import Path
 
 from ..testing.test_engine import TestEngine
@@ -35,17 +36,45 @@ class AudioEvaluationSystem:
     
     def shutdown(self):
         """システムを終了"""
-        self.test_engine.shutdown()
-        
-        # セッションサマリー生成
-        if self.session_results and self.test_engine.test_session_id:
-            print("\n=== セッションサマリー生成 ===")
-            summary_path = self.report_generator.generate_session_summary(
-                self.test_engine.test_session_id, 
-                self.session_results
-            )
-        
-        print("✓ システム終了")
+        try:
+            print("\n=== システム終了処理開始 ===")
+            
+            # TestEngineの終了処理
+            self.test_engine.shutdown()
+            
+            # セッションサマリー生成
+            if self.session_results and self.test_engine.test_session_id:
+                print("\n--- セッションサマリー生成 ---")
+                try:
+                    summary_path = self.report_generator.generate_session_summary(
+                        self.test_engine.test_session_id, 
+                        self.session_results
+                    )
+                    print(f"✓ セッションサマリー生成完了: {summary_path}")
+                except Exception as e:
+                    print(f"× セッションサマリー生成でエラー: {e}")
+            
+            # メモリクリーンアップ
+            print("\n--- メモリクリーンアップ ---")
+            try:
+                # セッション結果をクリア
+                self.session_results.clear()
+                
+                # ガベージコレクションを強制実行
+                import gc
+                collected = gc.collect()
+                print(f"✓ ガベージコレクション完了 ({collected}オブジェクト回収)")
+                
+            except Exception as cleanup_error:
+                print(f"× メモリクリーンアップエラー: {cleanup_error}")
+            
+            print("✓ システム終了完了")
+            
+        except Exception as e:
+            print(f"× システム終了時にエラー: {e}")
+            # エラーが発生してもプロセスは正常に終了
+            import traceback
+            traceback.print_exc()
     
     def run_single_file_test(self, file_path, duration=5, generate_report=True):
         """
@@ -226,6 +255,19 @@ def main():
     # システム初期化
     system = AudioEvaluationSystem()
     
+    def signal_handler(signum, frame):
+        """シグナルハンドラー - 強制終了時の適切なクリーンアップ"""
+        print(f"\n× シグナル {signum} を受信しました。システムを終了します...")
+        try:
+            system.shutdown()
+        except:
+            pass  # 終了処理でエラーが出ても無視
+        sys.exit(1)
+    
+    # シグナルハンドラーを設定
+    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # kill
+    
     try:
         # リスト系コマンドの場合は接続不要
         if args.list_files:
@@ -291,7 +333,11 @@ def main():
         return 1
     
     finally:
-        system.shutdown()
+        try:
+            system.shutdown()
+        except Exception as shutdown_error:
+            print(f"× システム終了処理でエラー: {shutdown_error}")
+            # エラーを出力するが、プロセスは正常終了
 
 
 if __name__ == "__main__":

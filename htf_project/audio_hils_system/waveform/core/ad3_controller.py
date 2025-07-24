@@ -69,41 +69,65 @@ class AD3Controller:
             # デバイスを開く - 複数の方法を試行
             print("デバイス接続を試行中...")
             
-            # 方法1: 高レベルAPI
+            # 方法1: 高レベルAPI（タイムアウト付き）
             try:
-                self.hdwf = self.dwf.deviceControl.open(0)
-                print("✓ デバイス接続成功 (高レベルAPI)")
-                self.is_connected = True
-                return True
-            except Exception as e1:
+                import signal
+                
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("デバイス接続タイムアウト")
+                
+                # 5秒タイムアウトを設定
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(5)
+                
+                try:
+                    self.hdwf = self.dwf.deviceControl.open(0)
+                    signal.alarm(0)  # タイムアウト解除
+                    print("✓ デバイス接続成功 (高レベルAPI)")
+                    self.is_connected = True
+                    return True
+                finally:
+                    signal.alarm(0)  # 確実にタイムアウト解除
+                    
+            except (Exception, TimeoutError) as e1:
                 print(f"× 高レベルAPI接続失敗: {e1}")
                 
-                # 方法2: 低レベルAPI
+                # 方法2: 低レベルAPI（タイムアウト付き）
                 try:
                     print("低レベルAPIで再試行中...")
-                    hdwf_c = ctypes.c_int()
-                    result = self.dwf._lib.FDwfDeviceOpen(ctypes.c_int(0), ctypes.byref(hdwf_c))
-                    if result == 1:
-                        self.hdwf = hdwf_c.value
-                        print("✓ デバイス接続成功 (低レベルAPI)")
-                        self.is_connected = True
-                        return True
-                    else:
-                        # エラーコードを取得
-                        error_code = ctypes.c_int()
-                        self.dwf._lib.FDwfGetLastError(ctypes.byref(error_code))
-                        print(f"× 低レベルAPI接続失敗 (エラーコード: {error_code.value})")
+                    
+                    # タイムアウト設定
+                    signal.signal(signal.SIGALRM, timeout_handler)
+                    signal.alarm(5)
+                    
+                    try:
+                        hdwf_c = ctypes.c_int()
+                        result = self.dwf._lib.FDwfDeviceOpen(ctypes.c_int(0), ctypes.byref(hdwf_c))
+                        signal.alarm(0)  # タイムアウト解除
                         
-                        error_messages = {
-                            1: "デバイスが既に使用中です",
-                            2: "デバイスのオープンに失敗しました",
-                            3: "USB通信エラー",
-                            4: "デバイスが見つかりません"
-                        }
-                        error_msg = error_messages.get(error_code.value, "不明なエラー")
-                        print(f"エラー詳細: {error_msg}")
-                        
-                        raise RuntimeError(f"AD3デバイス接続失敗: {error_msg}")
+                        if result == 1:
+                            self.hdwf = hdwf_c.value
+                            print("✓ デバイス接続成功 (低レベルAPI)")
+                            self.is_connected = True
+                            return True
+                        else:
+                            # エラーコードを取得
+                            error_code = ctypes.c_int()
+                            self.dwf._lib.FDwfGetLastError(ctypes.byref(error_code))
+                            print(f"× 低レベルAPI接続失敗 (エラーコード: {error_code.value})")
+                            
+                            error_messages = {
+                                1: "デバイスが既に使用中です",
+                                2: "デバイスのオープンに失敗しました",
+                                3: "USB通信エラー",
+                                4: "デバイスが見つかりません"
+                            }
+                            error_msg = error_messages.get(error_code.value, "不明なエラー")
+                            print(f"エラー詳細: {error_msg}")
+                            
+                            raise RuntimeError(f"AD3デバイス接続失敗: {error_msg}")
+                    finally:
+                        signal.alarm(0)  # 確実にタイムアウト解除
                         
                 except Exception as e2:
                     print(f"× 低レベルAPI接続エラー: {e2}")
@@ -158,55 +182,158 @@ class AD3Controller:
             device = self.hdwf
             channel = 0
             
-            # AWGリセット
-            device.analogOut.reset(channel)
-            
-            # AWG設定（高レベルAPI） - 正しいEnum値を使用
-            import pydwf
-            node_carrier = pydwf.DwfAnalogOutNode.Carrier
-            func_play = pydwf.DwfAnalogOutFunction.Play
-            
-            device.analogOut.nodeEnableSet(channel, node_carrier, True)
-            device.analogOut.nodeFrequencySet(channel, node_carrier, SAMPLE_RATE)
-            device.analogOut.nodeAmplitudeSet(channel, node_carrier, OUTPUT_AMP)
-            device.analogOut.nodeOffsetSet(channel, node_carrier, AD3_OFFSET_VOLTAGE)
-            
-            # カスタム波形データを設定
-            device.analogOut.nodeFunctionSet(channel, node_carrier, func_play)
-            device.analogOut.nodeDataSet(channel, node_carrier, awg_waveform)
+            print("AWG設定中...")
+            try:
+                # AWGリセット
+                device.analogOut.reset(channel)
+                
+                # AWG設定（高レベルAPI） - 正しいEnum値を使用
+                import pydwf
+                node_carrier = pydwf.DwfAnalogOutNode.Carrier
+                func_play = pydwf.DwfAnalogOutFunction.Play
+                
+                device.analogOut.nodeEnableSet(channel, node_carrier, True)
+                device.analogOut.nodeFrequencySet(channel, node_carrier, SAMPLE_RATE)
+                device.analogOut.nodeAmplitudeSet(channel, node_carrier, OUTPUT_AMP)
+                device.analogOut.nodeOffsetSet(channel, node_carrier, AD3_OFFSET_VOLTAGE)
+                
+                # カスタム波形データを設定
+                device.analogOut.nodeFunctionSet(channel, node_carrier, func_play)
+                device.analogOut.nodeDataSet(channel, node_carrier, awg_waveform)
+                
+                # 設定確認
+                actual_freq = device.analogOut.nodeFrequencyGet(channel, node_carrier)
+                actual_amp = device.analogOut.nodeAmplitudeGet(channel, node_carrier)
+                print(f"AWG設定確認: {actual_freq:.0f}Hz, {actual_amp:.3f}V振幅")
+                
+            except Exception as awg_error:
+                print(f"× AWG設定エラー: {awg_error}")
+                return None
             
             # スコープ設定（高レベルAPI）
             scope_channel = 0
-            device.analogIn.channelEnableSet(scope_channel, True)
-            device.analogIn.channelRangeSet(scope_channel, AD3_SCOPE_RANGE)
-            device.analogIn.frequencySet(SAMPLE_RATE)
-            device.analogIn.bufferSizeSet(len(waveform_chunk))
+            print("スコープ設定中...")
+            try:
+                device.analogIn.reset()  # スコープリセット
+                device.analogIn.channelEnableSet(scope_channel, True)
+                device.analogIn.channelRangeSet(scope_channel, AD3_SCOPE_RANGE)
+                device.analogIn.frequencySet(SAMPLE_RATE)
+                device.analogIn.bufferSizeSet(len(waveform_chunk))
+                
+                # 設定が正しく適用されたか確認
+                actual_freq = device.analogIn.frequencyGet()
+                actual_buffer = device.analogIn.bufferSizeGet()
+                print(f"スコープ設定確認: {actual_freq:.0f}Hz, {actual_buffer}サンプル")
+                
+            except Exception as scope_error:
+                print(f"× スコープ設定エラー: {scope_error}")
+                return None
             
-            # 同期開始
-            device.analogIn.configure(False, True)  # スコープ開始
-            device.analogOut.configure(channel, True)  # AWG開始
+            # スコープのトリガー設定を追加
+            print("トリガー設定中...")
+            try:
+                # 自動トリガーに設定
+                import pydwf
+                device.analogIn.triggerAutoTimeoutSet(0)  # 自動トリガー
+                device.analogIn.triggerSourceSet(pydwf.DwfTriggerSource.None_)  # 自動トリガー
+                print("✓ トリガー設定完了")
+            except Exception as trigger_error:
+                print(f"× トリガー設定エラー: {trigger_error}")
+                # トリガー設定に失敗しても継続（デフォルト設定を使用）
+                print("デフォルトトリガー設定で継続")
+            
+            # 同期開始（段階的に実行）
+            print("デバイス同期開始...")
+            try:
+                # まずスコープを単発記録モードに設定
+                device.analogIn.configure(False, True)  # 単発記録開始
+                time.sleep(0.1)  # 設定安定化待機
+                
+                # AWGを開始（これで記録が開始される）
+                device.analogOut.configure(channel, True)
+                time.sleep(0.1)  # 開始安定化待機
+                
+                print("✓ デバイス同期開始完了")
+                
+            except Exception as sync_error:
+                print(f"× デバイス同期開始エラー: {sync_error}")
+                return None
             
             # 記録完了まで待機（タイムアウト付き）
-            timeout = 5.0  # 5秒タイムアウト
+            timeout = 10.0  # タイムアウトを10秒に延長
             start_time = time.time()
+            recording_completed = False
+            last_status = None
+            
+            print("記録開始待機...")
             
             while True:
-                if time.time() - start_time > timeout:
-                    print(f"タイムアウト: {timeout}秒経過、強制終了")
-                    break
-                    
-                status = device.analogIn.status(True)
-                if status == 2:  # DwfStateDone
-                    print("記録完了")
-                    break
-                elif status == 3:  # DwfStateRunning
-                    elapsed = time.time() - start_time
-                    print(f"\r記録中: {elapsed:.1f}s", end="", flush=True)
+                current_time = time.time()
+                elapsed = current_time - start_time
                 
-                time.sleep(0.1)
+                if elapsed > timeout:
+                    print(f"\n× タイムアウト: {timeout}秒経過、処理を中断")
+                    print(f"最終ステータス: {last_status}")
+                    # デバイスを停止
+                    try:
+                        device.analogIn.configure(False, False)  # スコープ停止
+                        device.analogOut.configure(channel, False)  # AWG停止
+                        print("✓ デバイス停止完了")
+                    except Exception as stop_error:
+                        print(f"× デバイス停止エラー: {stop_error}")
+                    return None
+                    
+                try:
+                    status = device.analogIn.status(True)
+                    last_status = status
+                    
+                    # pydwf.DwfStateのEnum値を適切に処理
+                    import pydwf
+                    
+                    if status == pydwf.DwfState.Done:  # 完了
+                        # Done状態が初回の場合のみ記録完了とする（連続Done防止）
+                        if elapsed > 0.8:  # 0.8秒以上経過してからのDoneのみ有効
+                            print(f"\n✓ 記録完了 ({elapsed:.1f}秒)")
+                            recording_completed = True
+                            break
+                        else:
+                            print(f"\r準備中: {elapsed:.1f}s (初期Done)", end="", flush=True)
+                    elif status == pydwf.DwfState.Running:  # 実行中
+                        print(f"\r記録中: {elapsed:.1f}s (実行中)", end="", flush=True)
+                    elif status == pydwf.DwfState.Armed:  # 準備完了
+                        print(f"\r待機中: {elapsed:.1f}s (準備完了)", end="", flush=True)
+                    elif status == pydwf.DwfState.Ready:  # 準備中
+                        print(f"\r初期化中: {elapsed:.1f}s (準備中)", end="", flush=True)
+                    elif status == pydwf.DwfState.Triggered:  # トリガー待機
+                        print(f"\r記録中: {elapsed:.1f}s (トリガー中)", end="", flush=True)
+                    elif status == pydwf.DwfState.Prefill:  # プリフィル
+                        print(f"\r準備中: {elapsed:.1f}s (プリフィル)", end="", flush=True)
+                    else:
+                        print(f"\r不明状態: {elapsed:.1f}s (status={status})", end="", flush=True)
+                    
+                except Exception as status_error:
+                    print(f"\n× ステータス取得エラー: {status_error}")
+                    # ハードウェアエラー時も停止
+                    try:
+                        device.analogIn.configure(False, False)
+                        device.analogOut.configure(channel, False)
+                    except:
+                        pass
+                    return None
+                
+                time.sleep(0.2)  # ポーリング間隔を少し長めに
             
-            # データ取得
-            captured_data = device.analogIn.statusData(scope_channel, len(waveform_chunk))
+            # 記録が正常に完了した場合のみデータ取得
+            if not recording_completed:
+                print("× 記録が正常に完了しませんでした")
+                return None
+                
+            try:
+                # データ取得
+                captured_data = device.analogIn.statusData(scope_channel, len(waveform_chunk))
+            except Exception as data_error:
+                print(f"× データ取得エラー: {data_error}")
+                return None
             
             print(f"チャンク {chunk_index + 1}: 実際のAD3で出力・記録完了")
             
@@ -236,34 +363,67 @@ class AD3Controller:
     def disconnect(self):
         """デバイス接続を切断"""
         if not self.is_connected or self.hdwf is None:
-            return False
+            print("デバイスは既に切断されています")
+            return True
+            
+        disconnect_success = False
+        
         try:
+            # デバイスを停止してからクローズ
+            try:
+                # 進行中の処理を停止
+                if hasattr(self.hdwf, 'analogIn'):
+                    self.hdwf.analogIn.configure(False, False)  # スコープ停止
+                if hasattr(self.hdwf, 'analogOut'):
+                    for channel in range(2):  # チャンネル0,1を停止
+                        try:
+                            self.hdwf.analogOut.configure(channel, False)
+                        except:
+                            pass
+            except Exception as stop_error:
+                print(f"× デバイス停止エラー（継続）: {stop_error}")
+            
             # まず高レベルAPIによるクローズを試行
             try:
                 self.dwf.deviceControl.close(self.hdwf)
-            except Exception:
+                disconnect_success = True
+                print("✓ 高レベルAPIでデバイス切断完了")
+            except Exception as high_level_error:
+                print(f"× 高レベルAPI切断失敗: {high_level_error}")
+                
                 # フォールバックで低レベルAPIを利用
-                # hdwfハンドルを正しくc_int化
-                if isinstance(self.hdwf, int):
-                    hdwf_c = ctypes.c_int(self.hdwf)
-                elif hasattr(self.hdwf, 'value'):
-                    hdwf_c = ctypes.c_int(self.hdwf.value)
-                elif hasattr(self.hdwf, '_hdwf'):
-                    hdwf_c = ctypes.c_int(self.hdwf._hdwf)
-                else:
-                    hdwf_c = None
+                try:
+                    # hdwfハンドルを正しくc_int化
+                    if isinstance(self.hdwf, int):
+                        hdwf_c = ctypes.c_int(self.hdwf)
+                    elif hasattr(self.hdwf, 'value'):
+                        hdwf_c = ctypes.c_int(self.hdwf.value)
+                    elif hasattr(self.hdwf, '_hdwf'):
+                        hdwf_c = ctypes.c_int(self.hdwf._hdwf)
+                    else:
+                        hdwf_c = None
 
-                if hdwf_c is not None and self.dwf and hasattr(self.dwf, '_lib'):
-                    self.dwf._lib.FDwfDeviceClose(hdwf_c)
+                    if hdwf_c is not None and self.dwf and hasattr(self.dwf, '_lib'):
+                        self.dwf._lib.FDwfDeviceClose(hdwf_c)
+                        disconnect_success = True
+                        print("✓ 低レベルAPIでデバイス切断完了")
+                    else:
+                        print("× 低レベルAPI切断: ハンドル取得失敗")
+                        
+                except Exception as low_level_error:
+                    print(f"× 低レベルAPI切断失敗: {low_level_error}")
 
-            print("デバイス接続を終了しました")
-            return True
+            return disconnect_success
 
         except Exception as e:
-            print(f"デバイスクローズエラー: {e}")
+            print(f"× デバイス切断エラー: {e}")
             return False
 
         finally:
-            # 状態をリセット
+            # エラーが発生してもリソースを強制的にリセット
             self.is_connected = False
             self.hdwf = None
+            if disconnect_success:
+                print("✓ デバイスリソース解放完了")
+            else:
+                print("× デバイス切断に問題が発生しましたが、リソースはリセットしました")

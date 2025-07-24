@@ -43,14 +43,19 @@ class AudioProcessor:
             wf.setpos(0)
             all_audio_data = wf.readframes(total_frames)
             
-            # 16bit符号付き整数から-1.0~1.0の範囲に正規化
-            waveform_orig_all = np.frombuffer(all_audio_data, dtype=np.int16).astype(np.float64) / 32768.0
+            # メモリ使用量を削減するため32bit floatを使用
+            waveform_orig_all = np.frombuffer(all_audio_data, dtype=np.int16).astype(np.float32) / 32768.0
             waveform_orig_all = np.clip(waveform_orig_all, -1.0, 1.0)
+            
+            # 元データを明示的に削除してメモリ解放
+            del all_audio_data
             
             # 指定のサンプリングレートにリサンプリング
             if original_rate != self.sample_rate:
                 num_samples_all = int(len(waveform_orig_all) * self.sample_rate / original_rate)
-                waveform_all = signal.resample(waveform_orig_all, num_samples_all)
+                waveform_all = signal.resample(waveform_orig_all, num_samples_all).astype(np.float32)
+                # リサンプリング前のデータを削除
+                del waveform_orig_all
             else:
                 waveform_all = waveform_orig_all
             

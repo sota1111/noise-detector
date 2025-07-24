@@ -61,10 +61,14 @@ class TestEngine:
     
     def shutdown(self):
         """テストエンジンを終了し、リソースを解放"""
-        if self.is_connected:
-            self.ad3_controller.disconnect()
-            self.is_connected = False
-        print("テストエンジン終了")
+        try:
+            if self.is_connected:
+                self.ad3_controller.disconnect()
+                self.is_connected = False
+            print("テストエンジン終了")
+        except Exception as e:
+            print(f"× テストエンジン終了時にエラー: {e}")
+            self.is_connected = False  # 強制的にフラグをリセット
     
     def run_single_file_test(self, audio_file_path, test_duration=5, test_name=None):
         """
