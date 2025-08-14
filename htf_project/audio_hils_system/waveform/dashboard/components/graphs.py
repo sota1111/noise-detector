@@ -213,8 +213,8 @@ class GraphGenerator:
         
         # X軸とY軸のラベルを設定
         fig.update_xaxes(title_text="時間 (秒)", row=2, col=1)
-        fig.update_yaxes(title_text="電圧 (V)", row=1, col=1)
-        fig.update_yaxes(title_text="電圧 (V)", row=2, col=1)
+        fig.update_yaxes(title_text="電圧 (V)", range=[0, 3.3], row=1, col=1)
+        fig.update_yaxes(title_text="電圧 (V)", range=[0, 3.3], row=2, col=1)
         
         return fig
     
