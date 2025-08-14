@@ -157,28 +157,39 @@ class GraphGenerator:
         if not waveform_data:
             return self._create_empty_figure("波形データがありません")
         
-        fig = go.Figure()
+        # サブプロットを作成（上下に2つ）
+        fig = make_subplots(
+            rows=2, cols=1,
+            subplot_titles=("出力電圧", "入力電圧"),
+            vertical_spacing=0.1,
+            shared_xaxes=True
+        )
         
         # 標準解像度データ
         if 'standard' in waveform_data:
             std_data = waveform_data['standard']
-            if std_data.get('time') and std_data.get('input_voltage'):
-                fig.add_trace(go.Scatter(
-                    x=std_data['time'],
-                    y=std_data['input_voltage'],
-                    mode='lines',
-                    name='入力電圧',
-                    line=dict(color=self.colors[0], width=1)
-                ))
             
+            # 出力電圧（上段）
             if std_data.get('time') and std_data.get('output_voltage'):
                 fig.add_trace(go.Scatter(
                     x=std_data['time'],
                     y=std_data['output_voltage'],
                     mode='lines',
                     name='出力電圧',
-                    line=dict(color=self.colors[1], width=1)
-                ))
+                    line=dict(color='red', width=1),
+                    showlegend=True
+                ), row=1, col=1)
+            
+            # 入力電圧（下段）
+            if std_data.get('time') and std_data.get('input_voltage'):
+                fig.add_trace(go.Scatter(
+                    x=std_data['time'],
+                    y=std_data['input_voltage'],
+                    mode='lines',
+                    name='入力電圧',
+                    line=dict(color='blue', width=1),
+                    showlegend=True
+                ), row=2, col=1)
         
         # 高解像度データ（最初の1秒）
         if 'highres' in waveform_data:
@@ -189,17 +200,21 @@ class GraphGenerator:
                     y=hr_data['input_voltage'],
                     mode='lines',
                     name='入力電圧（高解像度）',
-                    line=dict(color=self.colors[2], width=2),
-                    visible='legendonly'  # デフォルトで非表示
-                ))
+                    line=dict(color='darkblue', width=2),
+                    visible='legendonly',  # デフォルトで非表示
+                    showlegend=True
+                ), row=2, col=1)
         
         fig.update_layout(
             title=title,
-            xaxis_title="時間 (秒)",
-            yaxis_title="電圧 (V)",
             template=self.template,
-            height=self._get_default_height()
+            height=800  # 上下に分割するため高さを増加
         )
+        
+        # X軸とY軸のラベルを設定
+        fig.update_xaxes(title_text="時間 (秒)", row=2, col=1)
+        fig.update_yaxes(title_text="電圧 (V)", row=1, col=1)
+        fig.update_yaxes(title_text="電圧 (V)", row=2, col=1)
         
         return fig
     

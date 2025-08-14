@@ -33,7 +33,7 @@ class DataLoader:
             self.output_path / "reports",  # 新しい場所（最新セッション）
             self.data_output_path / "reports"  # 古い場所（既存セッション）
         ]
-        self.csv_path = self.data_output_path / "csv"
+        self.csv_path = self.output_path / "csv"
         self.graphs_path = self.output_path / "graphs"
     
     def get_available_sessions(self) -> List[Dict]:

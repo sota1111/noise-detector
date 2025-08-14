@@ -3,7 +3,6 @@
 既存のaudio_hils_systemコンポーネントを活用
 """
 
-import os
 import time
 from datetime import datetime
 from pathlib import Path
