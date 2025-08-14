@@ -36,6 +36,7 @@ NeuralNetwork::NeuralNetwork() {
     maxDbIndex = 0;
     maxDbValue = 0;
     isDataStored = false;
+    triggerMode = NN_DEFAULT_TRIGGER_MODE;
     _context = nnablart_validation_allocate_context(Validation_parameters);
     nn_input_buffer = nnablart_validation_input_buffer(_context, 0);
 }
@@ -179,14 +180,28 @@ void NeuralNetwork::updateBuffer(int micValue) {
         int avgIntegral = calculateMovingIntegral(micValue, write_index);
         int dBValue = calculateDbValue(avgIntegral);
 
-        // 設定された閾値以上の音を検出
-        if (dBValue >= NN_TRIGGER_THRESHOLD_DB && !isNoiseDetected) {
+        // トリガーモードに応じて閾値判定
+        bool isTriggered = false;
+        if (triggerMode == NN_TRIGGER_MODE_DB) {
+            // デシベル閾値モード
+            if (dBValue >= NN_TRIGGER_THRESHOLD_DB && !isNoiseDetected) {
+                isTriggered = true;
+                Serial.printf("High volume detected: %ddB\n", dBValue);
+            }
+        } else if (triggerMode == NN_TRIGGER_MODE_VOLTAGE) {
+            // 電圧閾値モード
+            if (avgIntegral >= NN_TRIGGER_THRESHOLD_VOLTAGE && !isNoiseDetected) {
+                isTriggered = true;
+                Serial.printf("High voltage detected: %d\n", avgIntegral);
+            }
+        }
+        
+        if (isTriggered) {
             isNoiseDetected = true;
             detect_index = write_index;
             maxDbValue = dBValue;
             maxDbIndex = write_index;
             startTime = millis();
-            Serial.printf("High volume detected: %ddB\n", dBValue);
         }
         
         // ノイズ検出中は音声データの最大dB値を更新
@@ -333,6 +348,14 @@ void NeuralNetwork::processAudio() {
             // デシベル値を表示
             M5.Lcd.printf("dB: %d\n", maxDbValue);
             
+            // トリガーモード表示
+            M5.Lcd.setTextSize(1);
+            if (triggerMode == NN_TRIGGER_MODE_DB) {
+                M5.Lcd.printf("Trigger: dB >= %d\n", NN_TRIGGER_THRESHOLD_DB);
+            } else {
+                M5.Lcd.printf("Trigger: Volt >= %d\n", NN_TRIGGER_THRESHOLD_VOLTAGE);
+            }
+            
             // クラス名を表示（ESC-50の34クラス対応）
             M5.Lcd.setTextSize(2);
             M5.Lcd.setCursor(0, 160);
@@ -382,6 +405,16 @@ void NeuralNetwork::startTimer() {
     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.println("Neural Network MODE");
+    
+    // トリガーモード表示
+    M5.Lcd.setCursor(0, 10);
+    M5.Lcd.setTextSize(1);
+    if (triggerMode == NN_TRIGGER_MODE_DB) {
+        M5.Lcd.printf("Trigger: dB >= %d", NN_TRIGGER_THRESHOLD_DB);
+    } else {
+        M5.Lcd.printf("Trigger: Voltage >= %d", NN_TRIGGER_THRESHOLD_VOLTAGE);
+    }
+    
     Serial.println("Starting timer...");
     
     timer_nn = timerBegin(0, 80, true);
