@@ -128,12 +128,6 @@ def create_main_layout(session_options: List[Dict]):
         # タブコンテンツ
         html.Div(id="tab-content", className="mt-4"),
         
-        # 自動更新用のInterval
-        dcc.Interval(
-            id="interval-component",
-            interval=config.AUTO_REFRESH_INTERVAL,
-            n_intervals=0
-        ),
         
         # データ保存用
         dcc.Store(id="current-data"),

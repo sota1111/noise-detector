@@ -20,10 +20,9 @@ def register_data_callbacks(app):
          Output("category-checklist", "value"),
          Output("last-update", "children")],
         [Input("session-dropdown", "value"),
-         Input("refresh-button", "n_clicks"),
-         Input("interval-component", "n_intervals")]
+         Input("refresh-button", "n_clicks")]
     )
-    def update_data(selected_session: str, refresh_clicks: int, n_intervals: int) -> Tuple:
+    def update_data(selected_session: str, refresh_clicks: int) -> Tuple:
         """データを更新"""
         if not selected_session:
             return {}, {}, [], [], f"最終更新: {datetime.now().strftime('%H:%M:%S')}"
