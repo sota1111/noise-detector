@@ -12,7 +12,7 @@ SAMPLE_RATE = 10000         # 10kHz
 EXTRACT_DURATION = 1.0      # 抽出する秒数（1秒）
 
 # AD3設定
-OUTPUT_AMP = 1.65           # ±1.65V (3.3V p-p)
+OUTPUT_AMP = 0.9            # ±0.9V (1.8V p-p)
 AD3_SCOPE_RANGE = 5.0       # スコープ範囲 ±5V
 AD3_OFFSET_VOLTAGE = 1.65   # オフセット電圧
 

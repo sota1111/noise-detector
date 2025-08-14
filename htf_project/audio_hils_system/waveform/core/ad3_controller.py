@@ -154,14 +154,16 @@ class AD3Controller:
         print(f"- 最大値: {self.global_max:.6f}")
     
     def _normalize_waveform(self, waveform_chunk):
-        """波形を0~3.3Vの範囲に正規化（5秒間全体の基準で1.65Vを中心）"""
+        f"""波形を{AD3_OFFSET_VOLTAGE - OUTPUT_AMP}~{AD3_OFFSET_VOLTAGE + OUTPUT_AMP}Vの範囲に正規化（5秒間全体の基準で{AD3_OFFSET_VOLTAGE}Vを中心）"""
         if self.global_min is None or self.global_max is None:
             # グローバルパラメータが未設定の場合は1.65Vに設定
             return np.ones_like(waveform_chunk) * AD3_OFFSET_VOLTAGE
         
         if self.global_max > self.global_min:
-            # 5秒間全体の最小値・最大値を使用して0~3.3Vに正規化
-            waveform_normalized = (waveform_chunk - self.global_min) / (self.global_max - self.global_min) * 3.3
+            # 5秒間全体の最小値・最大値を使用して電圧範囲に正規化
+            voltage_range = 2 * OUTPUT_AMP  # 電圧幅
+            min_voltage = AD3_OFFSET_VOLTAGE - OUTPUT_AMP  # 最小電圧
+            waveform_normalized = (waveform_chunk - self.global_min) / (self.global_max - self.global_min) * voltage_range + min_voltage
         else:
             # 無音の場合は1.65Vに設定
             waveform_normalized = np.ones_like(waveform_chunk) * AD3_OFFSET_VOLTAGE
