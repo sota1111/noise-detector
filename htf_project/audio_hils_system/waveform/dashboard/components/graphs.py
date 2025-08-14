@@ -191,19 +191,6 @@ class GraphGenerator:
                     showlegend=True
                 ), row=2, col=1)
         
-        # 高解像度データ（最初の1秒）
-        if 'highres' in waveform_data:
-            hr_data = waveform_data['highres']
-            if hr_data.get('time') and hr_data.get('input_voltage'):
-                fig.add_trace(go.Scatter(
-                    x=hr_data['time'],
-                    y=hr_data['input_voltage'],
-                    mode='lines',
-                    name='入力電圧（高解像度）',
-                    line=dict(color='darkblue', width=2),
-                    visible='legendonly',  # デフォルトで非表示
-                    showlegend=True
-                ), row=2, col=1)
         
         fig.update_layout(
             title=title,
