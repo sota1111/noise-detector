@@ -384,6 +384,29 @@ void NeuralNetwork::processAudio() {
             Serial.println("CLASS_NAME:UNKNOWN");
         }
         
+        // 待機
+        delay(1000);
+        
+        // 表示を検出中に戻す
+        M5.Lcd.fillScreen(TFT_BLACK);
+        M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5.Lcd.setCursor(0, 0);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.println("Neural Network MODE");
+        
+        // トリガーモード表示
+        M5.Lcd.setCursor(0, 30);
+        M5.Lcd.setTextSize(1);
+        if (triggerMode == NN_TRIGGER_MODE_DB) {
+            M5.Lcd.printf("Trigger: dB >= %d", NN_TRIGGER_THRESHOLD_DB);
+        } else {
+            M5.Lcd.printf("Trigger: Voltage >= %d", NN_TRIGGER_THRESHOLD_VOLTAGE);
+        }
+        
+        M5.Lcd.setCursor(0, 50);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.println("DETECTING...");
+        
         // NN処理完了後、次の検出サイクルを開始
         isDataStored = false;
         maxDbValue = 0;
