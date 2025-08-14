@@ -70,13 +70,14 @@ class TestEngine:
             print(f"× テストエンジン終了時にエラー: {e}")
             self.is_connected = False  # 強制的にフラグをリセット
     
-    def run_single_file_test(self, audio_file_path, test_duration=5, test_name=None):
+    def run_single_file_test(self, audio_file_path, test_duration=5, use_peak_segment=False, test_name=None):
         """
         単一音声ファイルのテストを実行
         
         Args:
             audio_file_path (str): 音声ファイルのパス
             test_duration (int): テスト時間（秒）
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             test_name (str, optional): テスト名
             
         Returns:
@@ -104,11 +105,24 @@ class TestEngine:
             print(f"✓ 音声ファイル検証OK")
             
             # 音声処理
-            chunks, file_info = self.audio_processor.process_audio_file(audio_file_path)
+            chunks, file_info = self.audio_processor.process_audio_file(audio_file_path, use_peak_segment)
             
-            # テスト時間に応じてチャンクを制限
-            test_chunks = chunks[:test_duration]
-            print(f"✓ 音声処理完了 ({len(test_chunks)}秒分)")
+            # ピークセグメント使用時は時間制限不要、通常時は時間制限適用
+            if use_peak_segment:
+                test_chunks = chunks  # 全て使用（約1秒）
+                print(f"✓ 音声処理完了 ({len(test_chunks)}秒分 - ピークセグメント)")
+            else:
+                test_chunks = chunks[:test_duration]
+                print(f"✓ 音声処理完了 ({len(test_chunks)}秒分)")
+            
+            # チャンクが空の場合のエラーハンドリング
+            if not test_chunks:
+                return {
+                    'success': False,
+                    'error': 'ピークセグメント処理でチャンクが生成されませんでした',
+                    'file_path': audio_file_path,
+                    'processing_mode': file_info.get('processing_mode', 'unknown')
+                }
             
             # AD3正規化パラメータ設定
             self.ad3_controller.set_global_normalization_params(test_chunks)
@@ -226,13 +240,14 @@ class TestEngine:
                 'execution_time': time.time() - start_time if 'start_time' in locals() else 0
             }
     
-    def run_multiple_files_test(self, file_paths, test_duration_per_file=5, test_name=None):
+    def run_multiple_files_test(self, file_paths, test_duration_per_file=5, use_peak_segment=False, test_name=None):
         """
         複数音声ファイルのバッチテストを実行
         
         Args:
             file_paths (list): 音声ファイルパスのリスト
             test_duration_per_file (int): ファイルあたりのテスト時間（秒）
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             test_name (str, optional): テスト名
             
         Returns:
@@ -256,7 +271,7 @@ class TestEngine:
             
             # 個別テスト実行
             individual_test_name = f"{test_name}_file{idx+1:03d}"
-            result = self.run_single_file_test(file_path, test_duration_per_file, individual_test_name)
+            result = self.run_single_file_test(file_path, test_duration_per_file, use_peak_segment, individual_test_name)
             results.append(result)
             
             # エラー時の処理
@@ -308,7 +323,7 @@ class TestEngine:
         
         return batch_result
     
-    def run_category_test(self, category, max_files=None, test_duration_per_file=5):
+    def run_category_test(self, category, max_files=None, test_duration_per_file=5, use_peak_segment=False):
         """
         特定カテゴリの音声ファイルをテスト
         
@@ -316,6 +331,7 @@ class TestEngine:
             category (str): ESC-50カテゴリ名
             max_files (int, optional): 最大ファイル数（Noneの場合は全て）
             test_duration_per_file (int): ファイルあたりのテスト時間（秒）
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             dict: カテゴリテスト結果
@@ -339,18 +355,19 @@ class TestEngine:
         
         # バッチテスト実行
         test_name = f"category_{category}_{self.test_session_id}"
-        result = self.run_multiple_files_test(category_files, test_duration_per_file, test_name)
+        result = self.run_multiple_files_test(category_files, test_duration_per_file, use_peak_segment, test_name)
         result['category'] = category
         
         return result
     
-    def run_random_test(self, file_count=5, test_duration_per_file=5):
+    def run_random_test(self, file_count=5, test_duration_per_file=5, use_peak_segment=False):
         """
         ランダム選択ファイルのテスト
         
         Args:
             file_count (int): テストするファイル数
             test_duration_per_file (int): ファイルあたりのテスト時間（秒）
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             dict: ランダムテスト結果
@@ -369,7 +386,7 @@ class TestEngine:
         
         # バッチテスト実行
         test_name = f"random_{self.test_session_id}"
-        result = self.run_multiple_files_test(random_files, test_duration_per_file, test_name)
+        result = self.run_multiple_files_test(random_files, test_duration_per_file, use_peak_segment, test_name)
         result['test_type'] = 'random'
         
         return result

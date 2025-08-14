@@ -37,6 +37,7 @@ htf_project/
 - カテゴリ別テスト（動物、自然音、人工音など）
 - ランダムファイルテスト
 - バッチテスト実行
+- **ピークセグメント機能**（最大音量部分前後0.5秒抽出）
 
 ### 📊 評価・レポート
 - 音声識別精度測定
@@ -124,18 +125,34 @@ python3 app.py
 ```bash
 # 5つのランダム音声ファイルで各5秒間テスト
 python3 -m audio_hils_system.waveform.interface.audio_evaluation_system --random 5 --duration 5
+
+# 最大音量部分前後0.5秒（計1秒）のテスト
+python3 -m audio_hils_system.waveform.interface.audio_evaluation_system --random 5 --peak-segment
 ```
 
 ### カテゴリ別精度テスト
 ```bash
 # サイレン音カテゴリから最大10ファイルテスト
 python3 -m audio_hils_system.waveform.interface.audio_evaluation_system --category siren --max-files 10
+
+# ピークセグメント付きカテゴリテスト
+python3 -m audio_hils_system.waveform.interface.audio_evaluation_system --category dog --max-files 5 --peak-segment
 ```
 
 ### 単一ファイルテスト
 ```bash
 # 特定音声ファイルの詳細解析
 python3 -m audio_hils_system.waveform.interface.audio_evaluation_system --file audio_hils_system/waveform/data/input/sample.wav
+
+# ピークセグメント付き単一ファイルテスト
+python3 -m audio_hils_system.waveform.interface.audio_evaluation_system --file sample.wav --peak-segment
+```
+
+### ピークセグメント機能
+最大音量部分の前後0.5秒（計1秒間）を自動抽出してテストできます。
+```bash
+# 全テストモードでピークセグメント使用可能
+--peak-segment  # 最大音量部分の前後0.5秒間を使用
 ```
 
 ## テスト結果
@@ -221,6 +238,7 @@ AD3_SCOPE_RANGE = 5.0    # スコープ測定範囲（V）
 
 ## 更新履歴
 
+- **2025-08-14**: ピークセグメント機能実装（最大音量部分前後0.5秒抽出）
 - **2025-07-21**: インタラクティブWebダッシュボード実装
 - **2025-07-21**: フォルダ構造リオーガナイズ、相対import対応
 - **2025-07-21**: 音声識別評価システム実装

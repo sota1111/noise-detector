@@ -76,7 +76,7 @@ class AudioEvaluationSystem:
             import traceback
             traceback.print_exc()
     
-    def run_single_file_test(self, file_path, duration=5, generate_report=True):
+    def run_single_file_test(self, file_path, duration=5, generate_report=True, use_peak_segment=False):
         """
         単一ファイルテストを実行
         
@@ -84,6 +84,7 @@ class AudioEvaluationSystem:
             file_path (str): 音声ファイルパス
             duration (int): テスト時間（秒）
             generate_report (bool): レポート生成フラグ
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             dict: テスト結果
@@ -92,7 +93,7 @@ class AudioEvaluationSystem:
         print(f"ファイル: {file_path}")
         
         # テスト実行
-        result = self.test_engine.run_single_file_test(file_path, duration)
+        result = self.test_engine.run_single_file_test(file_path, duration, use_peak_segment)
         self.session_results.append(result)
         
         # レポート生成
@@ -101,7 +102,7 @@ class AudioEvaluationSystem:
         
         return result
     
-    def run_category_test(self, category, max_files=None, duration_per_file=5, generate_report=True):
+    def run_category_test(self, category, max_files=None, duration_per_file=5, generate_report=True, use_peak_segment=False):
         """
         カテゴリテストを実行
         
@@ -110,6 +111,7 @@ class AudioEvaluationSystem:
             max_files (int, optional): 最大ファイル数
             duration_per_file (int): ファイルあたりのテスト時間（秒）
             generate_report (bool): レポート生成フラグ
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             dict: テスト結果
@@ -117,7 +119,7 @@ class AudioEvaluationSystem:
         print(f"\n=== カテゴリテスト実行: {category} ===")
         
         # テスト実行
-        result = self.test_engine.run_category_test(category, max_files, duration_per_file)
+        result = self.test_engine.run_category_test(category, max_files, duration_per_file, use_peak_segment)
         
         # 個別結果をセッション結果に追加
         if result.get('success', False):
@@ -129,7 +131,7 @@ class AudioEvaluationSystem:
         
         return result
     
-    def run_random_test(self, file_count=5, duration_per_file=5, generate_report=True):
+    def run_random_test(self, file_count=5, duration_per_file=5, generate_report=True, use_peak_segment=False):
         """
         ランダムファイルテストを実行
         
@@ -137,6 +139,7 @@ class AudioEvaluationSystem:
             file_count (int): テストファイル数
             duration_per_file (int): ファイルあたりのテスト時間（秒）
             generate_report (bool): レポート生成フラグ
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             dict: テスト結果
@@ -145,7 +148,7 @@ class AudioEvaluationSystem:
         print(f"ファイル数: {file_count}")
         
         # テスト実行
-        result = self.test_engine.run_random_test(file_count, duration_per_file)
+        result = self.test_engine.run_random_test(file_count, duration_per_file, use_peak_segment)
         
         # 個別結果をセッション結果に追加
         if result.get('success', False):
@@ -157,7 +160,7 @@ class AudioEvaluationSystem:
         
         return result
     
-    def run_multiple_files_test(self, file_paths, duration_per_file=5, generate_report=True):
+    def run_multiple_files_test(self, file_paths, duration_per_file=5, generate_report=True, use_peak_segment=False):
         """
         複数ファイルテストを実行
         
@@ -165,6 +168,7 @@ class AudioEvaluationSystem:
             file_paths (list): ファイルパスのリスト
             duration_per_file (int): ファイルあたりのテスト時間（秒）
             generate_report (bool): レポート生成フラグ
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             dict: テスト結果
@@ -173,7 +177,7 @@ class AudioEvaluationSystem:
         print(f"ファイル数: {len(file_paths)}")
         
         # テスト実行
-        result = self.test_engine.run_multiple_files_test(file_paths, duration_per_file)
+        result = self.test_engine.run_multiple_files_test(file_paths, duration_per_file, use_peak_segment)
         
         # 個別結果をセッション結果に追加
         if result.get('success', False):
@@ -243,6 +247,8 @@ def create_argument_parser():
                        help='カテゴリテスト時の最大ファイル数')
     parser.add_argument('--no-report', action='store_true',
                        help='レポート生成を無効化')
+    parser.add_argument('--peak-segment', action='store_true',
+                       help='最大音量部分の前後0.5秒間を使用')
     
     return parser
 
@@ -255,7 +261,7 @@ def main():
     # システム初期化
     system = AudioEvaluationSystem()
     
-    def signal_handler(signum, frame):
+    def signal_handler(signum, _frame):
         """シグナルハンドラー - 強制終了時の適切なクリーンアップ"""
         print(f"\n× シグナル {signum} を受信しました。システムを終了します...")
         try:
@@ -283,6 +289,7 @@ def main():
             return 1
         
         generate_report = not args.no_report
+        use_peak_segment = args.peak_segment
         
         # テスト実行
         if args.file:
@@ -292,7 +299,7 @@ def main():
                 return 1
             
             result = system.run_single_file_test(
-                args.file, args.duration, generate_report
+                args.file, args.duration, generate_report, use_peak_segment
             )
             
             if not result.get('success', False):
@@ -302,7 +309,7 @@ def main():
         elif args.category:
             # カテゴリテスト
             result = system.run_category_test(
-                args.category, args.max_files, args.duration, generate_report
+                args.category, args.max_files, args.duration, generate_report, use_peak_segment
             )
             
             if not result.get('success', False):
@@ -312,7 +319,7 @@ def main():
         elif args.random:
             # ランダムテスト
             result = system.run_random_test(
-                args.random, args.duration, generate_report
+                args.random, args.duration, generate_report, use_peak_segment
             )
             
             if not result.get('success', False):

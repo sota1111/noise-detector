@@ -84,13 +84,91 @@ class AudioProcessor:
                 chunks.append(chunk)
         
         return chunks
-
-    def process_audio_file(self, wav_file_path):
+    
+    def find_peak_audio_segment(self, waveform_all, segment_duration=1.0):
         """
-        音声ファイルを読み込み、チャンクに分割して返す
+        音声ファイルから最大音量部分の前後指定時間を抽出
+        
+        Args:
+            waveform_all (np.ndarray): 全波形データ  
+            segment_duration (float): 抽出する時間（秒）
+            
+        Returns:
+            np.ndarray: 抽出された音声セグメント
+        """
+        # 入力データの検証
+        if len(waveform_all) == 0:
+            raise ValueError("音声データが空です")
+        
+        file_duration = len(waveform_all) / self.sample_rate
+        
+        # ファイルが短すぎる場合は全体を返す
+        if file_duration <= segment_duration:
+            return waveform_all
+        
+        # RMS（二乗平均平方根）で音量を計算
+        window_size = int(0.1 * self.sample_rate)  # 100msウィンドウ
+        
+        # ウィンドウサイズがデータ長より大きい場合の調整
+        if window_size >= len(waveform_all):
+            window_size = max(1, len(waveform_all) // 10)
+        
+        rms_values = []
+        
+        for i in range(0, len(waveform_all) - window_size, window_size):
+            window = waveform_all[i:i + window_size]
+            rms = np.sqrt(np.mean(window ** 2))
+            rms_values.append(rms)
+        
+        # RMS値が空の場合（極端に短いファイル）
+        if len(rms_values) == 0:
+            return waveform_all
+        
+        # 最大音量位置を特定
+        peak_index = np.argmax(rms_values)
+        peak_time = peak_index * window_size / self.sample_rate  # 正確な時間計算
+        
+        # 前後0.5秒の範囲を計算
+        half_duration = segment_duration / 2
+        start_time = max(0, peak_time - half_duration)
+        end_time = min(file_duration, peak_time + half_duration)
+        
+        # 最小セグメント長を保証（最低1秒または元ファイルの長さ）
+        min_segment_duration = min(segment_duration, file_duration)
+        actual_duration = end_time - start_time
+        
+        if actual_duration < min_segment_duration:
+            # セグメントが短すぎる場合は中央に配置して調整
+            center_time = (start_time + end_time) / 2
+            start_time = max(0, center_time - min_segment_duration / 2)
+            end_time = min(file_duration, start_time + min_segment_duration)
+            
+            # まだ短い場合は開始位置を調整
+            if end_time - start_time < min_segment_duration:
+                start_time = max(0, end_time - min_segment_duration)
+        
+        start_sample = int(start_time * self.sample_rate)
+        end_sample = int(end_time * self.sample_rate)
+        
+        # サンプル境界の最終チェック
+        start_sample = max(0, start_sample)
+        end_sample = min(len(waveform_all), end_sample)
+        
+        extracted_segment = waveform_all[start_sample:end_sample]
+        
+        # 抽出されたセグメントが空でないことを確認
+        if len(extracted_segment) == 0:
+            return waveform_all
+        
+        return extracted_segment
+
+    def process_audio_file(self, wav_file_path, use_peak_segment=False):
+        """
+        音声ファイルを読み込み、チャンクに分割またはピーク部分を抽出して返す
         
         Args:
             wav_file_path (str): 音声ファイルのパス
+            use_peak_segment (bool): 最大音量部分の前後0.5秒を使用するかどうか
             
         Returns:
             tuple: (チャンクのリスト, ファイル情報の辞書)
@@ -102,8 +180,15 @@ class AudioProcessor:
         # 音声ファイル読み込み
         waveform_all, file_duration = self.load_audio_file(wav_file_path)
         
-        # チャンクに分割
-        chunks = self.extract_chunks(waveform_all)
+        if use_peak_segment:
+            # 最大音量部分の前後0.5秒を抽出
+            peak_segment = self.find_peak_audio_segment(waveform_all, 1.0)
+            chunks = self.extract_chunks(peak_segment)
+            processing_mode = "peak_segment"
+        else:
+            # 既存の処理（全体をチャンクに分割）
+            chunks = self.extract_chunks(waveform_all)
+            processing_mode = "full_audio"
         
         # ファイル情報
         file_info = {
@@ -112,7 +197,8 @@ class AudioProcessor:
             'total_samples': len(waveform_all),
             'sample_rate': self.sample_rate,
             'num_chunks': len(chunks),
-            'chunk_duration': self.chunk_duration
+            'chunk_duration': self.chunk_duration,
+            'processing_mode': processing_mode
         }
         
         return chunks, file_info
