@@ -78,11 +78,14 @@ def register_data_callbacks(app):
         
         df = pd.DataFrame(data)
         
-        # ファイル名のユニークなリストを作成
-        filenames = df['filename'].unique().tolist()
-        file_options = [{"label": f, "value": f} for f in filenames]
+        # ファイル名とカテゴリのペアを作成
+        file_info = df[['filename', 'category']].drop_duplicates()
+        file_options = [
+            {"label": f"{row['filename']} ({row['category']})", "value": row['filename']} 
+            for _, row in file_info.iterrows()
+        ]
         
         # 最初のファイルをデフォルト選択
-        default_value = filenames[0] if filenames else ""
+        default_value = file_info.iloc[0]['filename'] if len(file_info) > 0 else ""
         
         return file_options, default_value
