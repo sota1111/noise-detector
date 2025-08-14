@@ -5,16 +5,6 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
-def create_statistics_content():
-    """統計分析タブのコンテンツ"""
-    return dbc.Container([
-        dbc.Row([
-            dbc.Col([
-                html.H5("統計分析タブ"),
-                html.P("このタブは現在統計概要の表示に使用されています。"),
-            ], width=12),
-        ]),
-    ], fluid=True)
 
 def create_distributions_content():
     """分布分析タブのコンテンツ"""
@@ -61,25 +51,6 @@ def create_confusion_content():
         ]),
     ], fluid=True)
 
-def create_details_content():
-    """詳細分析タブのコンテンツ"""
-    return dbc.Container([
-        dbc.Row([
-            dbc.Col([
-                dcc.Loading(
-                    dcc.Graph(id="performance-timeline"),
-                    type="default"
-                )
-            ], width=12),
-        ], className="mb-4"),
-        
-        dbc.Row([
-            dbc.Col([
-                html.H5("テスト結果詳細"),
-                html.Div(id="test-results-table")
-            ], width=12)
-        ])
-    ], fluid=True)
 
 def create_waveform_content():
     """波形表示タブのコンテンツ"""

@@ -14,24 +14,18 @@ def register_ui_callbacks(app):
     def update_tab_content(active_tab: str):
         """アクティブタブに応じてコンテンツを切り替え"""
         from ..layouts.tab_contents import (
-            create_statistics_content,
             create_accuracy_content,
             create_confusion_content,
             create_distributions_content,
-            create_details_content, 
             create_waveform_content
         )
         
-        if active_tab == "statistics-tab":
-            return create_statistics_content()
-        elif active_tab == "accuracy-tab":
+        if active_tab == "accuracy-tab":
             return create_accuracy_content()
         elif active_tab == "confusion-tab":
             return create_confusion_content()
         elif active_tab == "distributions-tab":
             return create_distributions_content()
-        elif active_tab == "details-tab":
-            return create_details_content()
         elif active_tab == "waveform-tab":
             return create_waveform_content()
         return html.Div("タブが選択されていません")

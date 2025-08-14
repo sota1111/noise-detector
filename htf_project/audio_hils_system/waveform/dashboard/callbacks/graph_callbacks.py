@@ -68,18 +68,6 @@ def register_graph_callbacks(app):
         
         return response_fig, confidence_fig
 
-    @app.callback(
-        Output("performance-timeline", "figure"),
-        [Input("interval-component", "n_intervals")]
-    )
-    def update_performance_timeline(n_intervals: int):
-        """性能推移を更新"""
-        
-        timeline_df = data_loader.get_test_performance_over_time()
-        if timeline_df.empty:
-            return graph_generator._create_empty_figure("時系列データがありません")
-        
-        return graph_generator.create_performance_timeline(timeline_df)
 
     @app.callback(
         Output("waveform-plot", "figure"),
