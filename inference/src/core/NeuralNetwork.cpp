@@ -220,7 +220,7 @@ void NeuralNetwork::updateBuffer(int micValue) {
             int stopTime = millis() - startTime;
             Serial.printf("Data collection complete: time=%dms, maxDb=%d\n", stopTime, maxDbValue);
 
-            // 関数スコープの変数初期化
+            // 関数スコープの変数初期化（次の検出サイクルのため）
             detect_count = 0;
             isNoiseDetected = false;
             startTime = 0;
@@ -388,6 +388,9 @@ void NeuralNetwork::processAudio() {
         isDataStored = false;
         maxDbValue = 0;
         maxDbIndex = 0;
+        
+        // バッファを初期化して次の検出サイクルの準備
+        initBuf();
         
         // タイマーを再開
         Serial.println("Restarting timer for next detection cycle");
