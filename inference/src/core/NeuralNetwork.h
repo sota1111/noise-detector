@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <time.h>
 #include "config/secret.h"
+#include "config/config.h"
 
 // 騒音検出
 #define MAX_NOISE_EVENTS  10  // 騒音イベント記録の最大数
@@ -33,28 +34,21 @@
 #define FONT_SIZE 2
 #define FONT_SIZE_LARGE 8
 
-// NN関連
-#define NN_BEFORE_LEN 200
 
 class NeuralNetwork {
 private:
     bool isRequestSpeaker;
     bool isTimerStopped;
     unsigned int write_index;
+    unsigned int detect_index;
     int16_t* val_buf=nullptr;
     int16_t adcAverageDetect;
-    
-    // 1秒ごとのNN実行用
-    unsigned long lastNNExecution;
-    unsigned long nnInterval;
     
     // 移動積分計算用
     long integralValue;
     int sampleIntegralCount;
     
-    // 1秒間のデシベル値とピーク検出用
-    int* dBValues;
-    int dBValueIndex;
+    // 70dB以上の音検出とピーク検出用
     int maxDbIndex;
     int maxDbValue;
     bool isDataStored;

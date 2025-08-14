@@ -38,4 +38,8 @@
 // 表示関連
 #define FONT_SIZE 2
 
+// NN関連
+#define NN_TRIGGER_THRESHOLD_DB (70)  // NN実行をトリガーするdB値
+#define NN_BEFORE_LEN (400)
+
 #endif

@@ -2,6 +2,7 @@
 #include <HTTPClient.h>
 #include "common.h"
 #include "NeuralNetwork.h"
+#include "config/config.h"
 #include "Validation/Validation_inference.h"
 #include "Validation/Validation_parameters.h"
 
@@ -28,13 +29,10 @@ NeuralNetwork::NeuralNetwork() {
     isRequestSpeaker = false;
     isTimerStopped = false;
     write_index = 0;
+    detect_index = 0;
     adcAverageDetect = 2048;
-    lastNNExecution = 0;
-    nnInterval = 1000; // 1秒間隔
     integralValue = 0;
     sampleIntegralCount = 0;
-    dBValues = nullptr;
-    dBValueIndex = 0;
     maxDbIndex = 0;
     maxDbValue = 0;
     isDataStored = false;
@@ -50,10 +48,6 @@ void NeuralNetwork::freeBuffer() {
     if (val_buf) {
         delete[] val_buf;
         val_buf = nullptr;
-    }
-    if (dBValues) {
-        delete[] dBValues;
-        dBValues = nullptr;
     }
 }
 
@@ -96,10 +90,9 @@ void NeuralNetwork::initBuf() {
         val_buf[i] = 0;
     }
     write_index = 0;
-    lastNNExecution = 0;
+    detect_index = 0;
     integralValue = 0;
     sampleIntegralCount = 0;
-    dBValueIndex = 0;
     maxDbIndex = 0;
     maxDbValue = 0;
     isDataStored = false;
@@ -112,15 +105,6 @@ void NeuralNetwork::initNeuralNetworkData() {
         M5.Lcd.println("Failed to allocate buffer");
         return;
     }
-    
-    // 1秒間のサンプル数でdBValuesバッファを確保
-    int samplesPerSecond = 1000000 / TIME_IRQ; // 1秒間のサンプル数 (10000サンプル)
-    dBValues = new int[samplesPerSecond];
-    if (dBValues == nullptr) {
-        Serial.println("Failed to allocate dB buffer");
-        return;
-    }
-    Serial.println("dB buffer allocated successfully");
     
     initBuf();
 #if 0
@@ -182,36 +166,49 @@ int NeuralNetwork::calculateMovingIntegral(int currentMicValue, int writeIndex)
 //  updateBuffer から移動積分の計算処理を関数呼び出しに置き換え
 // ============================================================
 void NeuralNetwork::updateBuffer(int micValue) {
-    static int debugCount = 0;
-    
+    static unsigned int detect_count = 0;
+    static bool isNoiseDetected      = false;
+    static unsigned int startTime    = 0;
+
     if (!isDataStored) {
-        // 連続的にバッファに音声データを保存
+        // ノイズ検出前後のデータを記録        
         write_index = (write_index + 1) % RECORD_MAX_LEN;
         val_buf[write_index] = micValue;
 
-        // 最新の音声データでデシベル値を計算
+        // 移動積分の計算
         int avgIntegral = calculateMovingIntegral(micValue, write_index);
         int dBValue = calculateDbValue(avgIntegral);
 
-        // デシベル値を保存
-        int samplesPerSecond = 1000000 / TIME_IRQ;
-        if (dBValueIndex < samplesPerSecond) {
-            dBValues[dBValueIndex] = dBValue;
-            
-            // 最大dB値とそのインデックスを更新
+        // 設定された閾値以上の音を検出
+        if (dBValue >= NN_TRIGGER_THRESHOLD_DB && !isNoiseDetected) {
+            isNoiseDetected = true;
+            detect_index = write_index;
+            maxDbValue = dBValue;
+            maxDbIndex = write_index;
+            startTime = millis();
+            Serial.printf("High volume detected: %ddB\n", dBValue);
+        }
+        
+        // ノイズ検出中は音声データの最大dB値を更新
+        if (isNoiseDetected) {
+            detect_count++;
             if (dBValue > maxDbValue) {
                 maxDbValue = dBValue;
                 maxDbIndex = write_index;
             }
-            
-            dBValueIndex++;
-            
-            // 1秒分のデータが溜まったらタイマーを止める
-            if (dBValueIndex >= samplesPerSecond) {
-                isDataStored = true;
-                timerStop(timer_nn);
-                Serial.printf("1sec data collected: samples=%d, maxDb=%d\n", dBValueIndex, maxDbValue);
-            }
+        }
+        
+        // ノイズ検出後、十分なデータを貯め続ける
+        if (detect_count > RECORD_AFTER_LEN) {
+            isDataStored = true;
+            timerStop(timer_nn);
+            int stopTime = millis() - startTime;
+            Serial.printf("Data collection complete: time=%dms, maxDb=%d\n", stopTime, maxDbValue);
+
+            // 関数スコープの変数初期化
+            detect_count = 0;
+            isNoiseDetected = false;
+            startTime = 0;
         }
     }
 }
@@ -253,14 +250,13 @@ int NeuralNetwork::exeNeuralNetwork() {
         return -1;
     }
     
-    // 最大dB値の前NN_BEFORE_LENのデータを使用
-    int startIndex = maxDbIndex - NN_BEFORE_LEN;
+    // 音を検出したポイント（detect_index）の前後のデータを使用
+    int startIndex = detect_index - NN_BEFORE_LEN;
     int endIndex = startIndex + NNABLART_VALIDATION_INPUT0_SIZE;
 
     int bufferIndex = 0;
     for (int index = startIndex; index < endIndex; index++) {
-        int bufIndex = (index + RECORD_MAX_LEN) % RECORD_MAX_LEN;
-        nn_input_buffer[bufferIndex] = ((float)(val_buf[bufIndex] - 2048)) / 2048.0;
+        nn_input_buffer[bufferIndex] = ((float)(val_buf[index % RECORD_MAX_LEN] - 2048)) / 2048.0;
         bufferIndex++;
     }
 
@@ -320,7 +316,7 @@ int NeuralNetwork::exeNeuralNetwork() {
 
 
 void NeuralNetwork::processAudio() {
-    // 1秒分のデータが溜まったらニューラルネットワークを実行
+    // NN_TRIGGER_THRESHOLD_DBdB以上の音を検出してデータが溜まったらニューラルネットワークを実行
     if(isDataStored){
         int soundClass = exeNeuralNetwork();
         
@@ -365,14 +361,13 @@ void NeuralNetwork::processAudio() {
             Serial.println("CLASS_NAME:UNKNOWN");
         }
         
-        // NN処理完了後、次の1秒間のデータ収集を開始
+        // NN処理完了後、次の検出サイクルを開始
         isDataStored = false;
-        dBValueIndex = 0;
         maxDbValue = 0;
         maxDbIndex = 0;
         
         // タイマーを再開
-        Serial.println("Restarting timer for next cycle");
+        Serial.println("Restarting timer for next detection cycle");
         timerRestart(timer_nn);
         timerStart(timer_nn);
     }
