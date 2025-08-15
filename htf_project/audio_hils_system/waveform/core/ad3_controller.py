@@ -361,6 +361,36 @@ class AD3Controller:
             raise RuntimeError("実機での波形出力・記録に失敗しました")
         return result
     
+    def stop_output(self):
+        """AWG出力を停止してオフセット電圧に設定"""
+        if not self.is_connected or self.hdwf is None:
+            return
+        
+        try:
+            device = self.hdwf
+            channel = 0
+            
+            # AWGを停止
+            device.analogOut.configure(channel, False)
+            
+            # オフセット電圧のみの直流出力に設定
+            import pydwf
+            node_carrier = pydwf.DwfAnalogOutNode.Carrier
+            func_dc = pydwf.DwfAnalogOutFunction.DC
+            
+            device.analogOut.nodeEnableSet(channel, node_carrier, True)
+            device.analogOut.nodeFunctionSet(channel, node_carrier, func_dc)
+            device.analogOut.nodeOffsetSet(channel, node_carrier, AD3_OFFSET_VOLTAGE)
+            device.analogOut.nodeAmplitudeSet(channel, node_carrier, 0.0)  # 振幅0で直流のみ
+            
+            # 直流出力開始
+            device.analogOut.configure(channel, True)
+            
+            print(f"✓ AWG出力停止 ({AD3_OFFSET_VOLTAGE}V直流出力)")
+            
+        except Exception as e:
+            print(f"× AWG出力停止エラー: {e}")
+    
     
     def disconnect(self):
         """デバイス接続を切断"""

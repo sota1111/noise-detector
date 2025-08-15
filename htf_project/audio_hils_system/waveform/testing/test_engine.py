@@ -280,6 +280,13 @@ class TestEngine:
                 continue
             else:
                 print(f"✓ ファイル {idx+1} 完了")
+            
+            # 次のファイル処理前に3秒待機（最後のファイルは除く）
+            if idx < len(file_paths) - 1:
+                # 待機前にAWG出力を停止
+                self.ad3_controller.stop_output()
+                print("次のファイル処理まで3秒待機中...")
+                time.sleep(3)
         
         # バッチテスト統計
         successful_tests = [r for r in results if r['success']]

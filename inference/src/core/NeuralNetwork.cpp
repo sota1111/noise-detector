@@ -385,7 +385,7 @@ void NeuralNetwork::processAudio() {
         }
         
         // 待機
-        delay(1000);
+        delay(3000);
         
         // 表示を検出中に戻す
         M5.Lcd.fillScreen(TFT_BLACK);

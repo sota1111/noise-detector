@@ -39,7 +39,7 @@
 #define FONT_SIZE 2
 
 // NN関連
-#define NN_TRIGGER_THRESHOLD_DB (70)  // NN実行をトリガーするdB値
+#define NN_TRIGGER_THRESHOLD_DB (60)  // NN実行をトリガーするdB値
 #define NN_TRIGGER_THRESHOLD_VOLTAGE (200)  // NN実行をトリガーする電圧値
 #define NN_TRIGGER_MODE_DB (0)  // デシベル閾値モード
 #define NN_TRIGGER_MODE_VOLTAGE (1)  // 電圧閾値モード
