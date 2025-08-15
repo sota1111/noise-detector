@@ -40,10 +40,6 @@
 
 // NN関連
 #define NN_TRIGGER_THRESHOLD_DB (60)  // NN実行をトリガーするdB値
-#define NN_TRIGGER_THRESHOLD_VOLTAGE (200)  // NN実行をトリガーする電圧値
-#define NN_TRIGGER_MODE_DB (0)  // デシベル閾値モード
-#define NN_TRIGGER_MODE_VOLTAGE (1)  // 電圧閾値モード
-#define NN_DEFAULT_TRIGGER_MODE NN_TRIGGER_MODE_DB  // デフォルトのトリガーモード
 #define NN_BEFORE_LEN (400)
 
 #endif

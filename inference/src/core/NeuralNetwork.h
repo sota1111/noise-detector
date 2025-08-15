@@ -53,8 +53,6 @@ private:
     int maxDbValue;
     bool isDataStored;
     
-    // トリガーモード関連
-    int triggerMode;  // 0: dB, 1: 電圧
 
     void initBuf();
     int calculateDbValue(int avgIntegral);
