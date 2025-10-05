@@ -111,7 +111,7 @@ void loop() {
                     M5.Lcd.printf("Neural Network...\n");
                     currentMode = NEURAL_NETWORK;
                     neuralNetwork.initNeuralNetworkData();
-                    //neuralNetwork.getADCAverage();
+                    neuralNetwork.getADCAverage();
                     neuralNetwork.startTimer();
                     break;
             }

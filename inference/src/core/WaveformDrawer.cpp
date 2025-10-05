@@ -1,6 +1,7 @@
 #include "WaveformDrawer.h"
 #include <M5Stack.h>
-#include "Free_Fonts.h" 
+#include "Free_Fonts.h"
+#include "config/config.h"
 
 WaveformDrawer waveformDrawer;
 
@@ -114,24 +115,30 @@ void WaveformDrawer::drawWaveform() {
     drawStringWithFormat("Graph Value", (int)abs(adcVal), 0, 20);
 
     static int16_t pt = GRAPH_MAX_LEN - 1;
-    adc_buf[pt] = adcVal;
+
+    // 0.5V以下の場合は0として扱う
+    int16_t filteredAdcVal = (micWave > ADC_MIN_THRESHOLD) ? adcVal : 0;
+
+    adc_buf[pt] = filteredAdcVal;
     val_buf[pt] = map((int16_t)(adcVal * X_SCALE), -2048, 2048,  0, 100);
 
     // === 移動積分の計算ロジック ===
     static long integralValue = 0;       // 移動積分値(直近 N サンプルの合計)
     static int  sampleCount   = 0;       // 何サンプル蓄積したか(立ち上がり時用)
 
-    integralValue += abs(adcVal);
+    integralValue += abs(filteredAdcVal);
 
     if (sampleCount < INTEGRAL_SAMPLES) {
       // まだ N サンプルに達していない場合 (立ち上がり時)
       sampleCount++;
     } else {
+      // 古い値を引く
       uint16_t oldPos = (pt + INTEGRAL_SAMPLES) % GRAPH_MAX_LEN;
       integralValue -= abs(adc_buf[oldPos]);
     }
+
     integ_buf[pt] = map((int16_t)(-integralValue / INTEGRAL_SAMPLES), -2048, 2048, 0, 100);
-    int16_t avgIntegral = integralValue / sampleCount;
+    int16_t avgIntegral = (sampleCount > 0) ? (integralValue / sampleCount) : 0;
     drawStringWithFormat("IntegralValue", (int)avgIntegral, 0, 30);
 
     // 0 → 40dB, 100 → 60dB, 500 → 80dB になるように補完

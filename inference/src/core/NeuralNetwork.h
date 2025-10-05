@@ -61,6 +61,7 @@ private:
     void freeBuffer();
     void softmax(const float* logits, float* probs, int size);
     int exeNeuralNetwork();
+    void drawStringWithFormat(const char* label, int value, int x, int y);
 
 public:
     NeuralNetwork();

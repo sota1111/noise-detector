@@ -39,7 +39,13 @@
 #define FONT_SIZE 2
 
 // NN関連
-#define NN_TRIGGER_THRESHOLD_DB (60)  // NN実行をトリガーするdB値
+#define NN_TRIGGER_THRESHOLD_DB (50)  // NN実行をトリガーするdB値
 #define NN_BEFORE_LEN (400)
+
+// ADC関連
+#define ADC_RESOLUTION (4095)
+#define ADC_VOLTAGE_RANGE (3.3)
+#define ADC_MIN_VOLTAGE (0.5)  // 0.5V以下は無視
+#define ADC_MIN_THRESHOLD ((int)(ADC_RESOLUTION * ADC_MIN_VOLTAGE / ADC_VOLTAGE_RANGE))  // 約620
 
 #endif

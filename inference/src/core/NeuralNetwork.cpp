@@ -147,7 +147,11 @@ int NeuralNetwork::calculateDbValue(int avgIntegral) {
 // ============================================================
 int NeuralNetwork::calculateMovingIntegral(int currentMicValue, int writeIndex)
 {
-    int16_t adcVal = abs(currentMicValue - adcAverageDetect);
+    // 0.5V以下の場合は0として扱う（ADC値が620以下）
+    int16_t adcVal = (currentMicValue > ADC_MIN_THRESHOLD)
+                     ? abs(currentMicValue - adcAverageDetect)
+                     : 0;
+
     integralValue += adcVal;
 
     if (sampleIntegralCount < INTEGRAL_SAMPLES_DETECT) {
@@ -155,10 +159,14 @@ int NeuralNetwork::calculateMovingIntegral(int currentMicValue, int writeIndex)
     } else {
         int prevIndex       = writeIndex - INTEGRAL_SAMPLES_DETECT;
         unsigned int oldPos = (prevIndex + RECORD_MAX_LEN) % RECORD_MAX_LEN;
-        integralValue    -= abs(val_buf[oldPos] - adcAverageDetect);
+        int16_t oldMicValue = val_buf[oldPos];
+        int16_t oldAdcVal   = (oldMicValue > ADC_MIN_THRESHOLD)
+                              ? abs(oldMicValue - adcAverageDetect)
+                              : 0;
+        integralValue -= oldAdcVal;
     }
 
-    int avgIntegral = integralValue / INTEGRAL_SAMPLES_DETECT;
+    int avgIntegral = (sampleIntegralCount > 0) ? (integralValue / sampleIntegralCount) : 0;
     return avgIntegral;
 }
 
@@ -171,8 +179,10 @@ void NeuralNetwork::updateBuffer(int micValue) {
     static unsigned int startTime    = 0;
 
     if (!isDataStored) {
-        // ノイズ検出前後のデータを記録        
+        // ノイズ検出前後のデータを記録
         write_index = (write_index + 1) % RECORD_MAX_LEN;
+
+        // 0.5V以下の場合は元の値を保存（NN推論用）
         val_buf[write_index] = micValue;
 
         // 移動積分の計算
