@@ -183,8 +183,9 @@ void NeuralNetwork::updateBuffer(int micValue) {
         bool isTriggered = false;
         if (dBValue >= NN_TRIGGER_THRESHOLD_DB && !isNoiseDetected) {
             isTriggered = true;
-            Serial.printf("High volume detected: %ddB\n", dBValue);
+            Serial.printf("High volume detected: %ddB (threshold: %d)\n", dBValue, NN_TRIGGER_THRESHOLD_DB);
         }
+        
         
         if (isTriggered) {
             isNoiseDetected = true;
@@ -325,36 +326,29 @@ void NeuralNetwork::processAudio() {
     if(isDataStored){
         int soundClass = exeNeuralNetwork();
         
-        // 結果が変わった場合のみ画面を更新
-        static int lastSoundClass = -1;
-        static int lastDbValue = -1;
-        if (soundClass != lastSoundClass || abs(maxDbValue - lastDbValue) > 2) {
-            // 結果表示エリアのみクリア
-            M5.Lcd.fillRect(0, 130, 320, 110, TFT_BLACK);
-            M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-            M5.Lcd.setTextSize(2);
-            M5.Lcd.setCursor(0, 130);
-            
-            // デシベル値を表示
-            M5.Lcd.printf("dB: %d\n", maxDbValue);
-            
-            // トリガー表示
-            M5.Lcd.setTextSize(1);
-            M5.Lcd.printf("Trigger: dB >= %d\n", NN_TRIGGER_THRESHOLD_DB);
-            
-            // クラス名を表示（ESC-50の34クラス対応）
-            M5.Lcd.setTextSize(2);
-            M5.Lcd.setCursor(0, 160);
-            
-            if (soundClass >= 0 && soundClass < 34) {
-                M5.Lcd.println(ESC50_CLASS_NAMES[soundClass]);
-            } else {
-                M5.Lcd.println("UNKNOWN");
-            }
-            M5.Lcd.setTextSize(1);
-            lastSoundClass = soundClass;
-            lastDbValue = maxDbValue;
+        // 結果表示エリアをクリア
+        M5.Lcd.fillRect(0, 130, 320, 110, TFT_BLACK);
+        M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.setCursor(0, 130);
+        
+        // デシベル値を表示
+        M5.Lcd.printf("dB: %d\n", maxDbValue);
+        
+        // トリガー表示
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.printf("Trigger: dB >= %d\n", NN_TRIGGER_THRESHOLD_DB);
+        
+        // クラス名を表示（ESC-50の34クラス対応）
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.setCursor(0, 160);
+        
+        if (soundClass >= 0 && soundClass < 34) {
+            M5.Lcd.println(ESC50_CLASS_NAMES[soundClass]);
+        } else {
+            M5.Lcd.println("UNKNOWN");
         }
+        M5.Lcd.setTextSize(1);
         
         // シリアル通信で検出クラスを送信
         Serial.print("DETECTED_CLASS:");
