@@ -132,17 +132,30 @@ class ReportGenerator:
         content.append(f"- **サンプリングレート:** {data_summary.get('sample_rate', 'N/A')} Hz")
         content.append(f"")
         
-        # 音声識別結果
+        # M5Stack分類結果
+        m5stack_classification = test_result.get('m5stack_classification', {})
+        if m5stack_classification and m5stack_classification.get('detected_index') is not None:
+            content.append(f"## M5Stack音声分類結果")
+            content.append(f"")
+            content.append(f"- **検出カテゴリ:** {m5stack_classification.get('detected_class_name', 'N/A')}")
+            content.append(f"- **正解カテゴリ:** {test_result.get('category', 'N/A')}")
+            content.append(f"- **分類結果:** {'✓ 正解' if m5stack_classification.get('is_match', False) else '× 不正解'}")
+            content.append(f"- **検出インデックス:** {m5stack_classification.get('detected_index', 'N/A')}")
+            content.append(f"- **期待インデックス:** {m5stack_classification.get('expected_index', 'N/A')}")
+            content.append(f"- **デシベル値:** {m5stack_classification.get('db_value', 'N/A')}dB")
+            content.append(f"")
+
+        # 音声識別結果（ダミー識別器）
         identification_result = test_result.get('identification_result', {})
         if identification_result:
-            content.append(f"## 音声識別結果")
+            content.append(f"## ダミー音声識別結果（参考）")
             content.append(f"")
             content.append(f"- **予測カテゴリ:** {identification_result.get('predicted_category', 'N/A')}")
             content.append(f"- **正解カテゴリ:** {identification_result.get('true_category', 'N/A')}")
             content.append(f"- **識別結果:** {'✓ 正解' if identification_result.get('is_correct', False) else '× 不正解'}")
             content.append(f"- **信頼度:** {identification_result.get('confidence', 0):.3f}")
             content.append(f"- **応答時間:** {identification_result.get('response_time', 0):.3f}秒")
-            
+
             # 上位候補
             top_candidates = identification_result.get('top_candidates', [])
             if len(top_candidates) > 1:
@@ -206,16 +219,27 @@ class ReportGenerator:
         content.append(f"- **総処理サンプル数:** {statistics.get('total_samples_processed', 'N/A')}")
         content.append(f"")
         
-        # 音声識別統計
+        # M5Stack分類統計
+        m5stack_stats = batch_result.get('m5stack_statistics')
+        if m5stack_stats:
+            content.append(f"## M5Stack音声分類統計")
+            content.append(f"")
+            content.append(f"- **分類正解率:** {m5stack_stats.get('accuracy', 0)*100:.1f}%")
+            content.append(f"- **正解数/総数:** {m5stack_stats.get('matches', 0)}/{m5stack_stats.get('total_tests', 0)}")
+            content.append(f"- **不正解数:** {m5stack_stats.get('mismatches', 0)}")
+            content.append(f"- **平均デシベル値:** {m5stack_stats.get('average_db', 0):.1f}dB")
+            content.append(f"")
+
+        # 音声識別統計（ダミー識別器）
         identification_stats = batch_result.get('identification_statistics')
         if identification_stats:
-            content.append(f"## 音声識別統計")
+            content.append(f"## ダミー音声識別統計（参考）")
             content.append(f"")
             content.append(f"- **識別正解率:** {identification_stats.get('accuracy', 0)*100:.1f}%")
             content.append(f"- **正解数/総数:** {identification_stats.get('correct_count', 0)}/{identification_stats.get('total_count', 0)}")
             content.append(f"- **平均信頼度:** {identification_stats.get('average_confidence', 0):.3f}")
             content.append(f"- **平均応答時間:** {identification_stats.get('average_response_time', 0):.3f}秒")
-            
+
             # カテゴリ別正解率
             category_accuracy = identification_stats.get('category_accuracy', {})
             if category_accuracy:
@@ -224,41 +248,41 @@ class ReportGenerator:
                 content.append(f"")
                 content.append(f"| カテゴリ | 正解率 | 正解数/総数 |")
                 content.append(f"|----------|--------|-------------|")
-                
+
                 for category, accuracy in sorted(category_accuracy.items()):
                     category_stats = identification_stats.get('category_stats', {}).get(category, {})
                     correct = category_stats.get('correct', 0)
                     total = category_stats.get('total', 0)
                     content.append(f"| {category} | {accuracy*100:.1f}% | {correct}/{total} |")
-            
+
             content.append(f"")
         
         # 個別テスト結果
         content.append(f"## 個別テスト結果")
         content.append(f"")
-        content.append(f"| No. | ファイル名 | カテゴリ | テスト結果 | 識別結果 | 予測 | 信頼度 | 実行時間 |")
-        content.append(f"|-----|-----------|----------|------------|----------|------|--------|----------|")
-        
+        content.append(f"| No. | ファイル名 | カテゴリ | テスト結果 | M5Stack分類 | M5Stack予測 | dB値 | 実行時間 |")
+        content.append(f"|-----|-----------|----------|------------|-------------|--------------|------|----------|")
+
         results = batch_result.get('results', [])
         for idx, result in enumerate(results, 1):
             filename = Path(result['file_path']).name if 'file_path' in result else 'N/A'
             category = result.get('category', 'N/A')
             test_status = "✓ 成功" if result.get('success', False) else "× 失敗"
             exec_time = f"{result.get('execution_time', 0):.2f}s"
-            
-            # 識別結果情報
-            identification_result = result.get('identification_result', {})
-            if identification_result:
-                identification_status = "✓ 正解" if identification_result.get('is_correct', False) else "× 不正解"
-                predicted = identification_result.get('predicted_category', 'N/A')
-                confidence = f"{identification_result.get('confidence', 0):.3f}"
+
+            # M5Stack分類結果情報
+            m5stack_classification = result.get('m5stack_classification', {})
+            if m5stack_classification and m5stack_classification.get('detected_index') is not None:
+                m5stack_status = "✓ 正解" if m5stack_classification.get('is_match', False) else "× 不正解"
+                m5stack_predicted = m5stack_classification.get('detected_class_name', 'N/A')
+                db_value = f"{m5stack_classification.get('db_value', 0)}dB"
             else:
-                identification_status = "N/A"
-                predicted = "N/A"
-                confidence = "N/A"
-            
-            content.append(f"| {idx} | {filename} | {category} | {test_status} | {identification_status} | {predicted} | {confidence} | {exec_time} |")
-        
+                m5stack_status = "N/A"
+                m5stack_predicted = "N/A"
+                db_value = "N/A"
+
+            content.append(f"| {idx} | {filename} | {category} | {test_status} | {m5stack_status} | {m5stack_predicted} | {db_value} | {exec_time} |")
+
         content.append(f"")
         
         # 失敗詳細（失敗があった場合）
@@ -285,9 +309,12 @@ class ReportGenerator:
             # データフレーム作成
             data = []
             for idx, result in enumerate(results, 1):
-                # 識別結果情報
+                # M5Stack分類結果情報
+                m5stack_classification = result.get('m5stack_classification', {})
+
+                # 識別結果情報（ダミー）
                 identification_result = result.get('identification_result', {})
-                
+
                 row = {
                     'test_number': idx,
                     'filename': Path(result['file_path']).name if 'file_path' in result else 'N/A',
@@ -299,10 +326,17 @@ class ReportGenerator:
                     'error': result.get('error', '') if not result.get('success', False) else '',
                     'chunks_processed': result.get('data_summary', {}).get('chunks_processed', 0),
                     'total_samples': result.get('data_summary', {}).get('total_samples', 0),
-                    'predicted_category': identification_result.get('predicted_category', ''),
-                    'identification_correct': identification_result.get('is_correct', False),
-                    'confidence': identification_result.get('confidence', 0),
-                    'response_time': identification_result.get('response_time', 0)
+                    # M5Stack分類結果
+                    'm5stack_detected_class': m5stack_classification.get('detected_class_name', ''),
+                    'm5stack_detected_index': m5stack_classification.get('detected_index', ''),
+                    'm5stack_expected_index': m5stack_classification.get('expected_index', ''),
+                    'm5stack_correct': m5stack_classification.get('is_match', False),
+                    'm5stack_db_value': m5stack_classification.get('db_value', 0),
+                    # ダミー識別結果（参考）
+                    'dummy_predicted_category': identification_result.get('predicted_category', ''),
+                    'dummy_identification_correct': identification_result.get('is_correct', False),
+                    'dummy_confidence': identification_result.get('confidence', 0),
+                    'dummy_response_time': identification_result.get('response_time', 0)
                 }
                 data.append(row)
             

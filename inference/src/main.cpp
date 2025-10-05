@@ -48,8 +48,11 @@ void setup() {
     M5.begin();
     // シリアル通信の初期化
     Serial.begin(115200);
-    Serial.println("System Started");
-    
+    delay(100); // シリアル接続の安定化待ち
+    Serial.println("=== M5Stack Audio Classification System ===");
+    Serial.println("SYSTEM: Initialized");
+    Serial.println("SYSTEM: Waiting for mode selection...");
+
     // メニューを表示してユーザーの選択を待つ
     showMenu();
 }
@@ -109,6 +112,7 @@ void loop() {
                     M5.Lcd.setCursor(0, 0);
                     M5.Lcd.setTextSize(1);
                     M5.Lcd.printf("Neural Network...\n");
+                    Serial.println("SYSTEM: Neural Network mode selected");
                     currentMode = NEURAL_NETWORK;
                     neuralNetwork.initNeuralNetworkData();
                     neuralNetwork.getADCAverage();

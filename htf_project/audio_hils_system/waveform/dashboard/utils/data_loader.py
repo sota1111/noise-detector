@@ -239,23 +239,55 @@ class DataLoader:
         df = self.load_all_statistics()
         if df.empty:
             return pd.DataFrame()
-        
+
         # セッションIDから日時情報を抽出
         df['datetime'] = pd.to_datetime(df['session_id'], format='%Y%m%d_%H%M%S', errors='coerce')
-        
+
+        # M5Stack分類データを優先的に使用
+        if 'm5stack_correct' in df.columns and not df['m5stack_correct'].isna().all():
+            agg_dict = {
+                'm5stack_correct': 'mean',
+                'm5stack_db_value': 'mean',
+                'test_number': 'count'
+            }
+            rename_dict = {
+                'm5stack_correct': 'accuracy',
+                'm5stack_db_value': 'avg_db',
+                'test_number': 'test_count'
+            }
+        elif 'dummy_identification_correct' in df.columns:
+            agg_dict = {
+                'dummy_identification_correct': 'mean',
+                'dummy_confidence': 'mean',
+                'dummy_response_time': 'mean',
+                'test_number': 'count'
+            }
+            rename_dict = {
+                'dummy_identification_correct': 'accuracy',
+                'dummy_confidence': 'confidence',
+                'dummy_response_time': 'response_time',
+                'test_number': 'test_count'
+            }
+        elif 'identification_correct' in df.columns:
+            # 旧形式との互換性
+            agg_dict = {
+                'identification_correct': 'mean',
+                'confidence': 'mean',
+                'response_time': 'mean',
+                'test_number': 'count'
+            }
+            rename_dict = {
+                'identification_correct': 'accuracy',
+                'test_number': 'test_count'
+            }
+        else:
+            return pd.DataFrame()
+
         # セッション別の集計
-        session_stats = df.groupby(['session_id', 'datetime']).agg({
-            'identification_correct': 'mean',
-            'confidence': 'mean',
-            'response_time': 'mean',
-            'test_number': 'count'
-        }).reset_index()
-        
-        session_stats.rename(columns={
-            'identification_correct': 'accuracy',
-            'test_number': 'test_count'
-        }, inplace=True)
-        
+        session_stats = df.groupby(['session_id', 'datetime']).agg(agg_dict).reset_index()
+
+        session_stats.rename(columns=rename_dict, inplace=True)
+
         return session_stats.sort_values('datetime')
 
 

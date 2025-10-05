@@ -6,6 +6,8 @@
 import time
 from datetime import datetime
 from pathlib import Path
+import serial
+import serial.tools.list_ports
 
 from ..core.audio_processor import AudioProcessor
 from ..core.ad3_controller import AD3Controller
@@ -15,9 +17,21 @@ from ..dataset.audio_selector import AudioSelector
 from ..identification.dummy_identifier import DummyIdentifier
 
 
+# ESC-50の34クラス名定義（M5Stackのコードと対応）
+ESC50_CLASS_NAMES = [
+    "dog", "cat", "rain", "sea_waves", "crackling_fire", "crickets",
+    "wind", "water_drops", "thunderstorm", "crying_baby", "sneezing",
+    "clapping", "breathing", "coughing", "footsteps", "laughing",
+    "brushing_teeth", "snoring", "door_wood_knock", "mouse_click",
+    "keyboard_typing", "can_opening", "washing_machine", "vacuum_cleaner",
+    "toilet_flush", "clock_alarm", "clock_tick", "glass_breaking",
+    "door_wood_creaks", "siren", "car_horn", "engine", "train", "silent"
+]
+
+
 class TestEngine:
     """音声識別評価テスト実行エンジン"""
-    
+
     def __init__(self):
         """テストエンジンを初期化"""
         self.audio_processor = AudioProcessor()
@@ -26,34 +40,166 @@ class TestEngine:
         self.esc50_labels = ESC50Labels()
         self.audio_selector = AudioSelector()
         self.dummy_identifier = DummyIdentifier(accuracy_rate=0.8)
-        
+
         self.is_connected = False
         self.test_session_id = None
+        self.serial_connection = None
+        self.m5stack_port = None
         
+    def find_m5stack_port(self):
+        """M5Stackのシリアルポートを自動検出"""
+        ports = serial.tools.list_ports.comports()
+
+        # デバッグ: 利用可能なポートを表示
+        print("利用可能なシリアルポート:")
+        for p in ports:
+            print(f"  {p.device}: {p.description} (製造元: {p.manufacturer})")
+
+        for port in ports:
+            # M5Stack（CP2104 USB to UART Bridge）を検出
+            description = port.description if port.description else ""
+            manufacturer = port.manufacturer if port.manufacturer else ""
+
+            # CP2104, Silicon Labs, またはACM（M5Stackの可能性）を検出
+            if ('CP210' in description or 'Silicon Labs' in manufacturer or
+                'ACM' in port.device or 'USB Serial' in description or
+                'USB Single Serial' in description):
+                print(f"M5Stack候補を検出: {port.device}")
+                return port.device
+
+        return None
+
+    def connect_m5stack(self):
+        """M5Stackとのシリアル接続を確立"""
+        try:
+            print("\n--- M5Stackシリアル接続 ---")
+
+            # ポート自動検出
+            self.m5stack_port = self.find_m5stack_port()
+            if not self.m5stack_port:
+                print("× M5Stackが見つかりません")
+                return False
+
+            print(f"M5Stack検出: {self.m5stack_port}")
+
+            # シリアル接続確立
+            self.serial_connection = serial.Serial(
+                port=self.m5stack_port,
+                baudrate=115200,
+                timeout=1.0
+            )
+
+            # バッファをクリア
+            self.serial_connection.reset_input_buffer()
+            self.serial_connection.reset_output_buffer()
+
+            print("✓ M5Stackシリアル接続成功")
+            return True
+
+        except Exception as e:
+            print(f"× M5Stackシリアル接続エラー: {e}")
+            return False
+
+    def disconnect_m5stack(self):
+        """M5Stackとのシリアル接続を切断"""
+        try:
+            if self.serial_connection and self.serial_connection.is_open:
+                self.serial_connection.close()
+                print("M5Stackシリアル接続を切断しました")
+        except Exception as e:
+            print(f"× M5Stackシリアル切断エラー: {e}")
+
+    def read_m5stack_classification(self, timeout=10):
+        """
+        M5Stackから分類結果を読み取る
+
+        Args:
+            timeout (int): タイムアウト時間（秒）
+
+        Returns:
+            dict: 分類結果 {'class_index': int, 'db_value': int, 'class_name': str}
+        """
+        if not self.serial_connection or not self.serial_connection.is_open:
+            print("× シリアル接続が確立されていません")
+            return None
+
+        start_time = time.time()
+        result = {'class_index': None, 'db_value': None, 'class_name': None}
+        in_result_block = False
+
+        print("M5Stackからの分類結果を待機中...")
+
+        while time.time() - start_time < timeout:
+            try:
+                if self.serial_connection.in_waiting > 0:
+                    line = self.serial_connection.readline().decode('utf-8', errors='ignore').strip()
+
+                    # デバッグ出力（結果ブロック外のみ）
+                    if line and not in_result_block:
+                        print(f"[M5Stack] {line}")
+
+                    # 結果ブロックの開始を検出
+                    if "CLASSIFICATION_RESULT_START" in line:
+                        in_result_block = True
+                        result = {'class_index': None, 'db_value': None, 'class_name': None}
+                        print("[M5Stack] 分類結果ブロック開始")
+                        continue
+
+                    # 結果ブロックの終了を検出
+                    if "CLASSIFICATION_RESULT_END" in line:
+                        in_result_block = False
+                        # すべての情報が揃っているか確認
+                        if all(v is not None for v in result.values()):
+                            print(f"✓ 分類結果受信: クラス={result['class_index']}, dB={result['db_value']}, 名前={result['class_name']}")
+                            return result
+                        else:
+                            print("× 分類結果が不完全です")
+                        continue
+
+                    # 結果ブロック内でデータをパース
+                    if in_result_block:
+                        if line.startswith("DETECTED_CLASS:"):
+                            result['class_index'] = int(line.split(":")[1])
+                        elif line.startswith("DB_VALUE:"):
+                            result['db_value'] = int(line.split(":")[1])
+                        elif line.startswith("CLASS_NAME:"):
+                            result['class_name'] = line.split(":")[1]
+
+            except Exception as e:
+                print(f"× シリアル読み取りエラー: {e}")
+                return None
+
+        print(f"× タイムアウト: {timeout}秒以内に結果を受信できませんでした")
+        return None
+
     def initialize(self):
         """テストエンジンを初期化し、AD3デバイスに接続"""
         try:
             print("=== 音声識別評価システム初期化 ===")
-            
+
             # AD3デバイス接続
             print("AD3デバイス接続中...")
             self.is_connected = self.ad3_controller.connect()
-            
+
             if not self.is_connected:
                 raise RuntimeError("AD3デバイス接続に失敗しました")
-            
+
             print("✓ AD3デバイス接続成功")
-            
+
+            # M5Stackシリアル接続
+            if not self.connect_m5stack():
+                print("警告: M5Stack接続に失敗しました。分類結果の取得はできません。")
+
             # 音声ファイル情報表示
             print("\n--- 利用可能音声ファイル情報 ---")
             self.audio_selector.print_summary()
-            
+
             # テストセッションID生成
             self.test_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
             print(f"\n✓ テストセッション開始: {self.test_session_id}")
-            
+
             return True
-            
+
         except Exception as e:
             print(f"× 初期化エラー: {e}")
             return False
@@ -61,6 +207,9 @@ class TestEngine:
     def shutdown(self):
         """テストエンジンを終了し、リソースを解放"""
         try:
+            # M5Stackシリアル接続を切断
+            self.disconnect_m5stack()
+
             if self.is_connected:
                 self.ad3_controller.disconnect()
                 self.is_connected = False
@@ -150,13 +299,39 @@ class TestEngine:
                 input_voltages.append(result['input_voltage'])
             
             print(f"✓ 全チャンク処理完了")
-            
-            # 音声識別実行
+
+            # M5Stackから分類結果を取得
+            m5stack_result = None
+            expected_index = None
+            if self.serial_connection and self.serial_connection.is_open:
+                print(f"\n--- M5Stack分類結果取得 ---")
+
+                # 正解カテゴリを取得
+                category = self.esc50_labels.get_category_by_filename(audio_file_path)
+                if category and category in ESC50_CLASS_NAMES:
+                    expected_index = ESC50_CLASS_NAMES.index(category)
+                    print(f"期待する分類: {category} (インデックス: {expected_index})")
+
+                # M5Stackから分類結果を読み取る
+                m5stack_result = self.read_m5stack_classification(timeout=15)
+
+                if m5stack_result:
+                    detected_index = m5stack_result['class_index']
+                    is_match = (expected_index == detected_index) if expected_index is not None else None
+
+                    print(f"\n--- 分類結果比較 ---")
+                    print(f"送信したカテゴリ: {category} (インデックス: {expected_index})")
+                    print(f"M5Stack検出結果: {m5stack_result['class_name']} (インデックス: {detected_index})")
+                    print(f"一致判定: {'✓ 一致' if is_match else '× 不一致' if is_match is not None else '判定不可'}")
+                else:
+                    print("× M5Stackから分類結果を取得できませんでした")
+
+            # 音声識別実行（従来のダミー識別）
             print(f"\n--- 音声識別実行 ---")
             identification_result = self.dummy_identifier.identify_audio(
                 audio_file_path, input_voltages
             )
-            
+
             print(f"識別結果: {identification_result['predicted_category']} "
                   f"({'✓正解' if identification_result['is_correct'] else '×不正解'})")
             print(f"信頼度: {identification_result['confidence']:.3f}")
@@ -202,7 +377,12 @@ class TestEngine:
             )
             
             execution_time = time.time() - start_time
-            
+
+            # M5Stack分類結果の一致判定
+            classification_match = None
+            if m5stack_result and expected_index is not None:
+                classification_match = (expected_index == m5stack_result['class_index'])
+
             # 結果まとめ
             result = {
                 'success': True,
@@ -225,7 +405,14 @@ class TestEngine:
                     'total_samples': sum(len(v) for v in output_voltages),
                     'sample_rate': file_info['sample_rate']
                 },
-                'identification_result': identification_result
+                'identification_result': identification_result,
+                'm5stack_classification': {
+                    'expected_index': expected_index,
+                    'detected_index': m5stack_result['class_index'] if m5stack_result else None,
+                    'detected_class_name': m5stack_result['class_name'] if m5stack_result else None,
+                    'db_value': m5stack_result['db_value'] if m5stack_result else None,
+                    'is_match': classification_match
+                }
             }
             
             print(f"\n✓ テスト完了 (実行時間: {execution_time:.1f}秒)")
@@ -295,7 +482,7 @@ class TestEngine:
         total_execution_time = time.time() - start_time
         
         # バッチ識別統計を追加
-        identification_results = [r.get('identification_result') for r in successful_tests 
+        identification_results = [r.get('identification_result') for r in successful_tests
                                  if r.get('identification_result')]
         identification_statistics = None
         if identification_results:
@@ -303,6 +490,35 @@ class TestEngine:
             print(f"\n--- バッチ識別統計 ---")
             print(f"識別正解率: {identification_statistics['accuracy']*100:.1f}%")
             print(f"平均信頼度: {identification_statistics['average_confidence']:.3f}")
+
+        # M5Stack分類統計を追加
+        m5stack_classifications = [r.get('m5stack_classification') for r in successful_tests
+                                   if r.get('m5stack_classification')]
+        m5stack_statistics = None
+        if m5stack_classifications:
+            # 有効な分類結果のみをカウント
+            valid_classifications = [c for c in m5stack_classifications if c.get('is_match') is not None]
+
+            if valid_classifications:
+                total_valid = len(valid_classifications)
+                matches = sum(1 for c in valid_classifications if c['is_match'])
+                accuracy = matches / total_valid if total_valid > 0 else 0
+
+                # dB値の統計
+                db_values = [c['db_value'] for c in valid_classifications if c.get('db_value') is not None]
+                avg_db = sum(db_values) / len(db_values) if db_values else 0
+
+                m5stack_statistics = {
+                    'total_tests': total_valid,
+                    'matches': matches,
+                    'mismatches': total_valid - matches,
+                    'accuracy': accuracy,
+                    'average_db': avg_db
+                }
+
+                print(f"\n--- M5Stack分類統計 ---")
+                print(f"M5Stack分類正解率: {accuracy*100:.1f}% ({matches}/{total_valid})")
+                print(f"平均dB値: {avg_db:.1f}dB")
 
         batch_result = {
             'success': len(failed_tests) == 0,
@@ -315,12 +531,13 @@ class TestEngine:
             'execution_time': total_execution_time,
             'statistics': {
                 'total_test_duration': sum(r.get('test_duration', 0) for r in successful_tests),
-                'average_execution_time': (sum(r.get('execution_time', 0) for r in successful_tests) / 
+                'average_execution_time': (sum(r.get('execution_time', 0) for r in successful_tests) /
                                          len(successful_tests)) if successful_tests else 0,
-                'total_samples_processed': sum(r.get('data_summary', {}).get('total_samples', 0) 
+                'total_samples_processed': sum(r.get('data_summary', {}).get('total_samples', 0)
                                              for r in successful_tests)
             },
-            'identification_statistics': identification_statistics
+            'identification_statistics': identification_statistics,
+            'm5stack_statistics': m5stack_statistics
         }
         
         print(f"\n=== バッチテスト完了 ===")

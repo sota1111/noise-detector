@@ -193,7 +193,7 @@ void NeuralNetwork::updateBuffer(int micValue) {
         bool isTriggered = false;
         if (dBValue >= NN_TRIGGER_THRESHOLD_DB && !isNoiseDetected) {
             isTriggered = true;
-            Serial.printf("High volume detected: %ddB (threshold: %d)\n", dBValue, NN_TRIGGER_THRESHOLD_DB);
+            Serial.printf("TRIGGER: High volume detected: %ddB (threshold: %d)\n", dBValue, NN_TRIGGER_THRESHOLD_DB);
         }
         
         
@@ -219,7 +219,7 @@ void NeuralNetwork::updateBuffer(int micValue) {
             isDataStored = true;
             timerStop(timer_nn);
             int stopTime = millis() - startTime;
-            Serial.printf("Data collection complete: time=%dms, maxDb=%d\n", stopTime, maxDbValue);
+            Serial.printf("COLLECTION_COMPLETE: time=%dms, maxDb=%d\n", stopTime, maxDbValue);
 
             // 関数スコープの変数初期化（次の検出サイクルのため）
             detect_count = 0;
@@ -360,22 +360,25 @@ void NeuralNetwork::processAudio() {
         }
         M5.Lcd.setTextSize(1);
         
-        // シリアル通信で検出クラスを送信
+        // シリアル通信で検出クラスを送信（Python側が解析しやすい形式）
+        Serial.println("=== CLASSIFICATION_RESULT_START ===");
         Serial.print("DETECTED_CLASS:");
         Serial.println(soundClass);
         Serial.print("DB_VALUE:");
         Serial.println(maxDbValue);
-        
+
         // クラス名もシリアル送信（ESC-50の34クラス対応）
         if (soundClass >= 0 && soundClass < 34) {
             Serial.print("CLASS_NAME:");
             Serial.println(ESC50_CLASS_NAMES[soundClass]);
         } else {
-            Serial.println("CLASS_NAME:UNKNOWN");
+            Serial.print("CLASS_NAME:");
+            Serial.println("UNKNOWN");
         }
-        
-        // 待機
-        delay(3000);
+        Serial.println("=== CLASSIFICATION_RESULT_END ===");
+
+        // 短い待機（Python側が結果を読み取る時間を確保）
+        delay(1000);
         
         // 表示を検出中に戻す
         M5.Lcd.fillScreen(TFT_BLACK);
@@ -402,7 +405,7 @@ void NeuralNetwork::processAudio() {
         initBuf();
         
         // タイマーを再開
-        Serial.println("Restarting timer for next detection cycle");
+        Serial.println("READY: Restarting timer for next detection cycle");
         timerRestart(timer_nn);
         timerStart(timer_nn);
     }
@@ -417,30 +420,31 @@ void NeuralNetwork::startTimer() {
     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.println("Neural Network MODE");
-    
+
     // トリガー表示
     M5.Lcd.setCursor(0, 10);
     M5.Lcd.setTextSize(1);
     M5.Lcd.printf("Trigger: dB >= %d", NN_TRIGGER_THRESHOLD_DB);
-    
-    Serial.println("Starting timer...");
-    
+
+    Serial.println("INIT: Starting Neural Network mode...");
+    Serial.printf("INIT: Trigger threshold: %ddB\n", NN_TRIGGER_THRESHOLD_DB);
+
     timer_nn = timerBegin(0, 80, true);
     if (timer_nn == NULL) {
         M5.Lcd.println("Timer begin failed");
-        Serial.println("Timer begin failed");
+        Serial.println("ERROR: Timer begin failed");
         return;
     }
-    Serial.println("Timer created");
-    
+    Serial.println("INIT: Timer created");
+
     timerAttachInterrupt(timer_nn, &onTimerNN, true);
-    Serial.println("Interrupt attached");
-    
+    Serial.println("INIT: Interrupt attached");
+
     timerAlarmWrite(timer_nn, TIME_IRQ, true);
-    Serial.println("Alarm written");
-    
+    Serial.println("INIT: Alarm written");
+
     timerAlarmEnable(timer_nn);
-    Serial.println("Timer started");
+    Serial.println("READY: Timer started - waiting for audio input");
 }
 
 void NeuralNetwork::restartTimer() {
