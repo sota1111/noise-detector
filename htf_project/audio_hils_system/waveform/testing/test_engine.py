@@ -14,7 +14,6 @@ from ..core.ad3_controller import AD3Controller
 from ..core.data_handler import DataHandler
 from ..dataset.esc50_labels import ESC50Labels
 from ..dataset.audio_selector import AudioSelector
-from ..identification.dummy_identifier import DummyIdentifier
 
 
 # ESC-50の34クラス名定義（M5Stackのコードと対応）
@@ -39,7 +38,6 @@ class TestEngine:
         self.data_handler = DataHandler()
         self.esc50_labels = ESC50Labels()
         self.audio_selector = AudioSelector()
-        self.dummy_identifier = DummyIdentifier(accuracy_rate=0.8)
 
         self.is_connected = False
         self.test_session_id = None
@@ -326,16 +324,6 @@ class TestEngine:
                 else:
                     print("× M5Stackから分類結果を取得できませんでした")
 
-            # 音声識別実行（従来のダミー識別）
-            print(f"\n--- 音声識別実行 ---")
-            identification_result = self.dummy_identifier.identify_audio(
-                audio_file_path, input_voltages
-            )
-
-            print(f"識別結果: {identification_result['predicted_category']} "
-                  f"({'✓正解' if identification_result['is_correct'] else '×不正解'})")
-            print(f"信頼度: {identification_result['confidence']:.3f}")
-            
             # データ保存
             print(f"\n--- データ保存 ---")
             
@@ -405,7 +393,6 @@ class TestEngine:
                     'total_samples': sum(len(v) for v in output_voltages),
                     'sample_rate': file_info['sample_rate']
                 },
-                'identification_result': identification_result,
                 'm5stack_classification': {
                     'expected_index': expected_index,
                     'detected_index': m5stack_result['class_index'] if m5stack_result else None,
@@ -478,18 +465,8 @@ class TestEngine:
         # バッチテスト統計
         successful_tests = [r for r in results if r['success']]
         failed_tests = [r for r in results if not r['success']]
-        
+
         total_execution_time = time.time() - start_time
-        
-        # バッチ識別統計を追加
-        identification_results = [r.get('identification_result') for r in successful_tests
-                                 if r.get('identification_result')]
-        identification_statistics = None
-        if identification_results:
-            identification_statistics = self.dummy_identifier.get_statistics(identification_results)
-            print(f"\n--- バッチ識別統計 ---")
-            print(f"識別正解率: {identification_statistics['accuracy']*100:.1f}%")
-            print(f"平均信頼度: {identification_statistics['average_confidence']:.3f}")
 
         # M5Stack分類統計を追加
         m5stack_classifications = [r.get('m5stack_classification') for r in successful_tests
@@ -536,7 +513,6 @@ class TestEngine:
                 'total_samples_processed': sum(r.get('data_summary', {}).get('total_samples', 0)
                                              for r in successful_tests)
             },
-            'identification_statistics': identification_statistics,
             'm5stack_statistics': m5stack_statistics
         }
         

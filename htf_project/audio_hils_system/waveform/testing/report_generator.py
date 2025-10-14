@@ -144,23 +144,6 @@ class ReportGenerator:
             content.append(f"- **期待インデックス:** {m5stack_classification.get('expected_index', 'N/A')}")
             content.append(f"- **デシベル値:** {m5stack_classification.get('db_value', 'N/A')}dB")
             content.append(f"")
-
-        # 音声識別結果（ダミー識別器）
-        identification_result = test_result.get('identification_result', {})
-        if identification_result:
-            content.append(f"## ダミー音声識別結果（参考）")
-            content.append(f"")
-            content.append(f"- **予測カテゴリ:** {identification_result.get('predicted_category', 'N/A')}")
-            content.append(f"- **正解カテゴリ:** {identification_result.get('true_category', 'N/A')}")
-            content.append(f"- **識別結果:** {'✓ 正解' if identification_result.get('is_correct', False) else '× 不正解'}")
-            content.append(f"- **信頼度:** {identification_result.get('confidence', 0):.3f}")
-            content.append(f"- **応答時間:** {identification_result.get('response_time', 0):.3f}秒")
-
-            # 上位候補
-            top_candidates = identification_result.get('top_candidates', [])
-            if len(top_candidates) > 1:
-                content.append(f"- **上位候補:** {', '.join(top_candidates[:3])}")
-            content.append(f"")
         
         # 出力ファイル
         output_files = test_result.get('output_files', {})
@@ -229,33 +212,6 @@ class ReportGenerator:
             content.append(f"- **不正解数:** {m5stack_stats.get('mismatches', 0)}")
             content.append(f"- **平均デシベル値:** {m5stack_stats.get('average_db', 0):.1f}dB")
             content.append(f"")
-
-        # 音声識別統計（ダミー識別器）
-        identification_stats = batch_result.get('identification_statistics')
-        if identification_stats:
-            content.append(f"## ダミー音声識別統計（参考）")
-            content.append(f"")
-            content.append(f"- **識別正解率:** {identification_stats.get('accuracy', 0)*100:.1f}%")
-            content.append(f"- **正解数/総数:** {identification_stats.get('correct_count', 0)}/{identification_stats.get('total_count', 0)}")
-            content.append(f"- **平均信頼度:** {identification_stats.get('average_confidence', 0):.3f}")
-            content.append(f"- **平均応答時間:** {identification_stats.get('average_response_time', 0):.3f}秒")
-
-            # カテゴリ別正解率
-            category_accuracy = identification_stats.get('category_accuracy', {})
-            if category_accuracy:
-                content.append(f"")
-                content.append(f"### カテゴリ別正解率")
-                content.append(f"")
-                content.append(f"| カテゴリ | 正解率 | 正解数/総数 |")
-                content.append(f"|----------|--------|-------------|")
-
-                for category, accuracy in sorted(category_accuracy.items()):
-                    category_stats = identification_stats.get('category_stats', {}).get(category, {})
-                    correct = category_stats.get('correct', 0)
-                    total = category_stats.get('total', 0)
-                    content.append(f"| {category} | {accuracy*100:.1f}% | {correct}/{total} |")
-
-            content.append(f"")
         
         # 個別テスト結果
         content.append(f"## 個別テスト結果")
@@ -312,9 +268,6 @@ class ReportGenerator:
                 # M5Stack分類結果情報
                 m5stack_classification = result.get('m5stack_classification', {})
 
-                # 識別結果情報（ダミー）
-                identification_result = result.get('identification_result', {})
-
                 row = {
                     'test_number': idx,
                     'filename': Path(result['file_path']).name if 'file_path' in result else 'N/A',
@@ -331,12 +284,7 @@ class ReportGenerator:
                     'm5stack_detected_index': m5stack_classification.get('detected_index', ''),
                     'm5stack_expected_index': m5stack_classification.get('expected_index', ''),
                     'm5stack_correct': m5stack_classification.get('is_match', False),
-                    'm5stack_db_value': m5stack_classification.get('db_value', 0),
-                    # ダミー識別結果（参考）
-                    'dummy_predicted_category': identification_result.get('predicted_category', ''),
-                    'dummy_identification_correct': identification_result.get('is_correct', False),
-                    'dummy_confidence': identification_result.get('confidence', 0),
-                    'dummy_response_time': identification_result.get('response_time', 0)
+                    'm5stack_db_value': m5stack_classification.get('db_value', 0)
                 }
                 data.append(row)
             
